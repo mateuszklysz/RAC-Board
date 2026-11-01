@@ -85,7 +85,7 @@ struct Fx : Effects {
     }
     void sound_loop(const char*, uint32_t, float, float) override {}
     void sound_stop(uint32_t) override {}
-    void particles(const char*, const Vec&) override {}
+    void particles(const char*, const Vec&, float) override {}
     void trick(BoardTricks t, float p) override { tricks.emplace_back(t, p); }
     void combo_end() override {}
 };

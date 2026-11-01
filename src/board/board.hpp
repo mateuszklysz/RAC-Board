@@ -108,6 +108,6 @@ uint32_t sound_play(Target& self, const char* name, float volume = 1.0f, float p
 void sound_stop(Target& self, uint32_t& id);
 // The set-param that fades a sound out over `time` (volume -4, auto-time): a stop for the port.
 void sound_fade(Target& self, uint32_t id, int auto_time);
-void particles(Target& self, const char* group, const Vec& at);
+void particles(Target& self, const char* group, const Vec& at, float rate = 1.0f);
 
 } // namespace jak

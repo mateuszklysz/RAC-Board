@@ -34,6 +34,7 @@
 #include "jak/target.hpp"
 #include "openrac/games/rac1.hpp"
 #include "openrac/mod.hpp"
+#include "rac1/board_fx.hpp"
 #include "rac1/convert.hpp"
 #include "rac1/ride_pose.hpp"
 
@@ -160,7 +161,11 @@ class RacEffects : public jak::Effects {
         g_mod->sound_stop(it->second);
         m_voices.erase(it);
     }
-    void particles(const char*, const Vec&) override {}  // no particles yet
+    void particles(const char* group, const Vec& at, float rate) override {
+        float p[3];
+        rac1::to_game_point(at, p);
+        fx.launch(group, p, yaw, rate);
+    }
     void trick(jak::BoardTricks t, float points) override {
         m_combo += points;
         if (g_set.trick_display) {
@@ -196,6 +201,10 @@ class RacEffects : public jak::Effects {
     std::map<uint32_t, uint32_t> m_voices;
     uint32_t m_next = 0x80000000u;  // apart from new-sound-id's ids (0x10000 up)
     float m_combo = 0.0f;
+
+  public:
+    rac1::BoardFx fx;
+    float yaw = 0.0f;  // the board's heading, for the parts that lie along it
 };
 
 // ---- the ride ----
@@ -240,8 +249,19 @@ class RacIo : public jak::Interaction {
   public:
     bool game_feature_board() override { return true; }
     uint32_t next_attack_id() override { return ++m_attack_id; }
-    float health() override { return 3.0f; }
-    void pickup_health(float) override {}
+    // Ratchet's own health: a hit on the board takes it off as the game's own hits do.
+    float health() override {
+        openrac_pose pose{};
+        return g_mod->hero_pose(pose) ? static_cast<float>(pose.health) : 1.0f;
+    }
+    void pickup_health(float amount) override {
+        if (amount >= 0.0f) return;
+        static const auto take = g_mod->function<openrac::rac1::Hero_TakeDamage::fn>(
+            openrac::rac1::Hero_TakeDamage::name);
+        // Hero_TakeDamage takes one hit point a call; the instant deaths take them all.
+        const int n = static_cast<int>(std::min(-amount, 100.0f) + 0.5f);
+        for (int i = 0; i < std::max(n, 1) && take; ++i) take(1);
+    }
     jak::TimeFrame game_clock_frame_counter() override { return g_clock; }
     jak::Mat joint_transform(int) override { return body_matrix(*g_ride.t); }
     Vec get_trans(int joint) override {
@@ -250,18 +270,37 @@ class RacIo : public jak::Interaction {
         if (joint == 6) p.y = p.y + 0.8f * rac1::kUnit;
         return p;
     }
-    bool prims_touching(const void*, uint32_t) override { return false; }
-    bool target_send_attack(jak::Handle, jak::Symbol, const void*, uint32_t, uint64_t, uint64_t) override {
-        return false;
+    // A creature of the game's he touches (touch_creatures): its slot + 1 as the handle.
+    bool prims_touching(const void* touching, uint32_t) override { return touching != nullptr; }
+    bool target_send_attack(jak::Handle to, jak::Symbol, const void*, uint32_t, uint64_t, uint64_t) override {
+        return hit_creature(to);
     }
-    bool send_board_attack(jak::Handle, const void*, uint32_t, uint64_t) override { return false; }
+    bool send_board_attack(jak::Handle to, const void*, uint32_t, uint64_t) override { return hit_creature(to); }
     jak::Symbol standard_event_handler(jak::Target&, const jak::EventMessage&) override { return {}; }
     jak::Symbol generic_event_handler(jak::Target&, const jak::EventMessage&) override { return {}; }
-    // Nothing in Ratchet & Clank attacks the target: the game's own damage reaches Ratchet when
-    // he is off the board.
-    jak::Symbol target_attacked(jak::Target&, jak::Symbol, const jak::AttackInfo&, jak::Handle, const void*,
-                                jak::StateId) override {
-        return {};
+    // target-attacked (target-handler.gc), as a hit of Ratchet & Clank's reaches it (the game's
+    // hits on Ratchet while he rides, on_moby_hit): none while he is hurt or invulnerable, else the
+    // attack is his and he goes to the board's hit state, which takes the health.
+    jak::Symbol target_attacked(jak::Target& t, jak::Symbol msg, const jak::AttackInfo& a, jak::Handle from,
+                                const void*, jak::StateId next) override {
+        namespace sf = jak::state_flags;
+        if ((t.focus_status & jak::focus::hit) || (t.state_flags & jak::sflags::disable_attacks)) return {};
+        if (t.state_flags & (jak::sflags::sf2 | sf::tinvul1 | sf::tinvul2)) return {};
+        m_rec = a;
+        if (!(m_rec.mask & jak::kAttackMaskAttacker)) {
+            m_rec.attacker = from;
+            m_rec.mask |= jak::kAttackMaskAttacker;
+        }
+        if (health() - m_rec.damage <= 0.0f) {
+            t.focus_status |= jak::focus::dead;
+            t.state_flags |= jak::sflags::disable_attacks;
+        }
+        jak::StateArgs args;
+        args.sym = msg == jak::Symbol("attack-or-shove") || msg == jak::Symbol("attack-invinc") ? jak::Symbol("attack")
+                                                                                              : msg;
+        args.attack = &m_rec;
+        jak::go(t, next, args);
+        return jak::Symbol("#t");
     }
     jak::AttackInfo* attack_info_rec() override { return &m_rec; }
     jak::AttackInfo* attack_info() override { return &m_info; }
@@ -273,16 +312,108 @@ class RacIo : public jak::Interaction {
         if (s.mode) d.mode = s.mode;
     }
     void target_hit_effect(const jak::AttackInfo&) override {}
+    void shock_effect() override {
+        float p[3];
+        rac1::to_game_point(g_ride.t->control.trans, p);
+        g_fx.fx.shock(p);
+    }
     bool target_hit_orient(const jak::AttackInfo&, const Vec&) override { return false; }
     jak::Symbol target_hit_push(Vec&, const jak::Mat&, float, float, const jak::AttackInfo&) override { return {}; }
     // The board's code left for one of the target's own states: the game's update takes over.
     void go_target_state(jak::Target&, jak::StateId, const jak::StateArgs&) override { g_ride.leave = true; }
 
   private:
+    // The game's own hit on the creature, as the wrench's: the bit every enemy reads (0x10000).
+    static bool hit_creature(jak::Handle to) {
+        if (to == 0) return false;
+        openrac_hit h{};
+        h.size = sizeof h;
+        h.victim = static_cast<int32_t>(to - 1);
+        h.attacker = g_mod->figure_slot(-1);
+        h.mask = 0x10000u;
+        h.damage = 1.0f;
+        rac1::to_game_point(g_ride.t->control.trans, h.position);
+        rac1::to_game_dir(g_ride.t->control.transv, h.velocity);
+        for (float& v : h.velocity) v /= rac1::kUnit;
+        return g_mod->moby_hit(h);
+    }
     uint32_t m_attack_id = 0;
     jak::AttackInfo m_info, m_rec;
 };
 RacIo g_io;
+
+// The creatures he rides into: each one touched sends the board's handler 'touched, as Jak II's
+// collision does, which attacks it in a spin or a kick (target-send-attack) and knocks it with the
+// board otherwise (send-board-attack). One touch a creature each half second.
+std::map<int, jak::TimeFrame> g_touched;
+
+void touch_creatures(jak::Target& t) {
+    float hero[3];
+    rac1::to_game_point(t.control.trans, hero);
+    const int self = g_mod->figure_slot(-1);
+    for (const openrac_moby& m : g_mod->moby_list()) {
+        if (!(m.flags & OPENRAC_MOBY_CREATURE) || (m.flags & OPENRAC_MOBY_DEAD) || m.slot == self) continue;
+        const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
+        if (dx * dx + dy * dy > 1.2f * 1.2f || dz < -1.0f || dz > 2.0f) continue;
+        auto it = g_touched.find(m.slot);
+        if (it != g_touched.end() && g_clock - it->second < jak::seconds(0.5)) continue;
+        g_touched[m.slot] = g_clock;
+        static const int kTouching = 0;  // a touching-shapes-entry the adapter does not read
+        jak::EventMessage e;
+        e.message = jak::Symbol("touched");
+        e.from = static_cast<jak::Handle>(m.slot) + 1;
+        e.num_params = 1;
+        e.touching = &kTouching;
+        jak::send_event(t, e);
+    }
+}
+
+// A hit the game posted on Ratchet while he rides (his own update, which would read it, does not
+// run then): taken back, and given to the board as an attack at the next tick.
+struct Hit {
+    bool pending = false;
+    float position[3]{}, velocity[3]{};
+    float damage = 1.0f;
+};
+Hit g_hit;
+
+int on_hit(void*, const openrac_hit* hit) {
+    if (g_set.trace && hit != nullptr) {
+        g_mod->info("hit " + std::to_string(hit->victim) + " by " + std::to_string(hit->attacker) + " mask " +
+                    std::to_string(hit->mask) + " damage " + std::to_string(hit->damage));
+    }
+    if (!riding() || hit == nullptr || hit->victim < 0 || hit->victim != g_mod->figure_slot(-1)) return 0;
+    if (!g_hit.pending || hit->damage > g_hit.damage) {
+        g_hit.pending = true;
+        std::copy(hit->position, hit->position + 3, g_hit.position);
+        std::copy(hit->velocity, hit->velocity + 3, g_hit.velocity);
+        g_hit.damage = hit->damage > 0.0f ? hit->damage : 1.0f;
+    }
+    return 1;
+}
+
+// The hit as Jak II's enemies send theirs: 'attack with an attack-info that shoves him away from
+// where it came from, by the board's handler (target-board-handler).
+void deliver_hit(jak::Target& t) {
+    if (!g_hit.pending) return;
+    g_hit.pending = false;
+    jak::AttackInfo a;
+    a.mode = jak::Symbol("generic");
+    a.damage = g_hit.damage;
+    Vec from = rac1::to_jak_point(g_hit.position);
+    Vec d{t.control.trans.x - from.x, 0.0f, t.control.trans.z - from.z, 0.0f};
+    if (d.x * d.x + d.z * d.z > 1.0f) {
+        a.vector = d;
+        a.mask |= jak::kAttackMaskVector;
+        jak::vector_xz_normalize(a.vector, 6144.0f);
+        a.vector.y = 4915.2f;
+    }
+    jak::EventMessage e;
+    e.message = jak::Symbol("attack");
+    e.num_params = 2;
+    e.attack = &a;
+    jak::send_event(t, e);
+}
 
 // The camera's rotation for read-pad: forward from the game's camera to the hero, flat.
 jak::Mat camera_matrix(const float hero[3], float hero_yaw) {
@@ -365,7 +496,15 @@ bool start_ride() {
     openrac_pose pose{};
     if (!g_mod->hero_pose(pose)) return false;
     find_hand(pose.position);
-    if (g_set.trace) g_mod->info("hand pieces " + std::to_string(g_hand.size()));
+    if (g_set.trace) {
+        g_mod->info("hand pieces " + std::to_string(g_hand.size()));
+        for (const openrac_moby& m : g_mod->moby_list()) {
+            if (!(m.flags & OPENRAC_MOBY_CREATURE)) continue;
+            g_mod->info("creature " + std::to_string(m.slot) + " class " + std::to_string(m.oclass) + " at " +
+                        std::to_string(m.position[0]) + "," + std::to_string(m.position[1]) + "," +
+                        std::to_string(m.position[2]));
+        }
+    }
     g_ride.t = std::make_unique<jak::Target>();
     g_ride.rt = std::make_unique<jak::BoardRuntime>();
     g_ride.leave = false;
@@ -426,11 +565,14 @@ void tick_ride(bool toggle_pressed) {
     s.target_fps = g_pal ? 50 : 60;
     jak::service_cpad(t.pad, s);
 
+    deliver_hit(t);
+    if (g_mod->has_world()) touch_creatures(t);
     jak::board_tick(t);
 
     if (g_set.trace && g_ride.rt->state != g_ride.traced) {
         g_ride.traced = g_ride.rt->state;
-        g_mod->info(std::string("state ") + jak::state_name(g_ride.traced));
+        g_mod->info(std::string("state ") + jak::state_name(g_ride.traced) + " height " +
+                    std::to_string(g_ride.t->control.trans.y / rac1::kUnit));
     }
 }
 
@@ -478,6 +620,7 @@ void show_ride() {
     Vec fwd;
     jak::vector_z_quaternion(fwd, t.control.quat);
     const float yaw = rac1::jak_forward_to_yaw(fwd);
+    g_fx.yaw = yaw;
     pose.rotation[0] = 0.0f;
     pose.rotation[1] = 0.0f;
     pose.rotation[2] = yaw;
@@ -600,7 +743,12 @@ void hero_update(const openrac::Original<void()>& original) {
         for (int bind : g_set.keys) pressed = pressed || g_mod->input().pressed(bind);
     }
 
-    if (riding() && g_mod->play_status().loads != g_ride.loads) end_ride();  // a new level
+    if (riding() && g_mod->play_status().loads != g_ride.loads) {  // a new level
+        end_ride();
+        g_fx.fx.clear(*g_mod);
+    }
+    // The board's particles live on after he gets off, until they fade.
+    g_fx.fx.update(*g_mod, 1.0f / (g_pal ? 50.0f : 60.0f));
     if (!riding()) {
         if (!(pressed && playing() && start_ride())) {
             original();
@@ -651,6 +799,7 @@ int load(openrac::Mod& mod) {
     g_set.trick_display = mod.setting<bool>("trick_display");
     g_set.trace = mod.setting<bool>("trace");
 
+    if (mod.has_world()) mod.on_moby_hit(on_hit);
     mod.on_pad([](int port, uint8_t* report, int size) {
         if (port != 0 || size < 18) return;
         g_pad.held = jak::ps2_buttons(report[0], report[1]);

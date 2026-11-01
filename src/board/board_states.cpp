@@ -1586,9 +1586,10 @@ void ride_edge_trans(Target& self) {
     if (4096.0f < b.ride_speed) {
         Vec gp;
         vector_add_float_mul(gp, c.trans, b.ride_dir, -4096.0f);
-        // (set! (-> *part-id-table* 431 init-specs 1 initial-valuef) (lerp-scale 0.1 2.0 ...)): the
-        // sparks' count by speed, a particle setting the host's group does not take.
-        particles(self, "part-431", gp);
+        // (set! (-> *part-id-table* 431 init-specs 1 initial-valuef) (lerp-scale ...)): the sparks'
+        // count by speed.
+        particles(self, "part-431", gp,
+                  lerp_scale(0.1f, 2.0f, std::fabs(b.ride_speed), 0.0f, 0.3f * c.mod_surface->transv_max));
     }
 }
 

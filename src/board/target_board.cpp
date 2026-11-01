@@ -92,9 +92,9 @@ void sound_fade(Target& self, uint32_t id, int auto_time) {
     }
 }
 
-void particles(Target& self, const char* group, const Vec& at) {
+void particles(Target& self, const char* group, const Vec& at, float rate) {
     if (self.effects) {
-        self.effects->particles(group, at);
+        self.effects->particles(group, at, rate);
     }
 }
 

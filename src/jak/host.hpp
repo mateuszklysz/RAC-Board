@@ -38,8 +38,9 @@ class Effects {
     // A looping sound's volume and pitch (the engine, wind, bank and ride loops), started on first use.
     virtual void sound_loop(const char* name, uint32_t id, float volume, float pitch) = 0;
     virtual void sound_stop(uint32_t id) = 0;
-    // part-tracker-spawn / launch-particles: a particle group by name at a point.
-    virtual void particles(const char* group, const Vec& at) = 0;
+    // part-tracker-spawn / launch-particles: a particle group by name at a point; `rate` scales
+    // how many it launches (a part whose num the code sets, as the rail's sparks).
+    virtual void particles(const char* group, const Vec& at, float rate) = 0;
     // A trick added to the combo, and the combo's end (board-trick-tracker, the PC port's display).
     virtual void trick(BoardTricks trick, float points) = 0;
     virtual void combo_end() = 0;
