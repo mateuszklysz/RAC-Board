@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
 // Ratchet's clip mixer (rac1/ride_clip.*): a clip read at its frames, the commands of Jak II's
-// joint-control (push, blend, stack) in order, and angles blended the short way round.
+// joint-control (push, blend, stack) in order, and turns blended the short way round.
 #include <cmath>
 #include <initializer_list>
 
@@ -30,9 +30,12 @@ int main() {
     CHECK_NEAR(a.hips[2], turn.hips[3 * 3 + 2], 1e-6);
     // Half way between frames: between the two.
     sample(turn, 3.5f, b);
-    const float lo = std::fmin(turn.board[3 * kBoardTracks + kRoll], turn.board[4 * kBoardTracks + kRoll]);
-    const float hi = std::fmax(turn.board[3 * kBoardTracks + kRoll], turn.board[4 * kBoardTracks + kRoll]);
-    CHECK(lo <= b.board[kRoll] && b.board[kRoll] <= hi);
+    const float lo = std::fmin(turn.board[3 * kBoardTracks + kPz], turn.board[4 * kBoardTracks + kPz]);
+    const float hi = std::fmax(turn.board[3 * kBoardTracks + kPz], turn.board[4 * kBoardTracks + kPz]);
+    CHECK(lo - 1e-6f <= b.board[kPz] && b.board[kPz] <= hi + 1e-6f);
+    const float n = b.board[kQx] * b.board[kQx] + b.board[kQy] * b.board[kQy] + b.board[kQz] * b.board[kQz] +
+                    b.board[kQw] * b.board[kQw];
+    CHECK_NEAR(n, 1.0f, 1e-5);
 
     // One group: push the turn, blend the duck in by half.
     JointControl jc;
@@ -66,12 +69,12 @@ int main() {
     sample(*find_clip(AnimId::jakb_board_jump), 0.0f, jump);
     CHECK_NEAR(s1.hips[2], jump.hips[2], 1e-6);
 
-    // A flip's end (360) blends into a stance's 0 without turning back round.
+    // The board's turn blends the shorter way: q and -q are the same turn.
     MixPose x, y;
     x.clear();
     y.clear();
-    x.board[kFlip] = 360.0f;
+    y.board[kQw] = -1.0f;
     blend(x, y, 0.5f);
-    CHECK(std::fabs(std::remainder(x.board[kFlip], 360.0f)) < 1e-3f);
+    CHECK_NEAR(std::fabs(x.board[kQw]), 1.0f, 1e-6);
     TEST_MAIN_END();
 }

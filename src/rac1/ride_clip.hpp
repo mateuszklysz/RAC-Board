@@ -21,14 +21,14 @@ struct Clip {
     const uint8_t* joint;  // the joints it turns
     const float* q;        // frames * joints offsets (x, y, z, w) over his standing pose
     const float* hips;     // frames * 3: the hips' move (model units)
-    const float* board;    // frames * 5: the board's pitch, roll, yaw (degrees), lift (model units),
-                           // and the whole body's flip (degrees, nose down)
+    const float* board;    // frames * 7: the board's turn (x, y, z, w) and place (model units: x his
+                           // heading, y left, z up), as it moves with him
 };
 // The clip of one of Jak's animations, or null when there is none of ours yet.
 const Clip* find_clip(jak::AnimId id);
 
 constexpr int kPoseJoints = 128;
-enum BoardTrack { kPitch, kRoll, kYaw, kLift, kFlip, kBoardTracks };
+enum BoardTrack { kQx, kQy, kQz, kQw, kPx, kPy, kPz, kBoardTracks };
 
 // A pose of the clips: each joint's offset (identity where no clip turns it).
 struct MixPose {
@@ -43,6 +43,10 @@ struct MixPose {
 void sample(const Clip& clip, float frame, MixPose& out);
 // a toward b by w (0 a, 1 b): the joints' turns along the shorter way, normalised.
 void blend(MixPose& a, const MixPose& b, float w);
+// a turned toward b by w (0 a, 1 b): quaternions, the shorter way, normalised.
+void nlerp(float a[4], const float b[4], float w);
+// The board's turn toward b's by w (the shorter way, normalised) and its place.
+void blend_board(float a[kBoardTracks], const float b[kBoardTracks], float w);
 // The joint-control's channels, mixed in their order by their commands.
 void mix(const jak::JointControl& jc, MixPose& out);
 

@@ -10,8 +10,6 @@
 
 namespace rac1 {
 
-namespace {
-
 void nlerp(float a[4], const float b[4], float w) {
     const float d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
     const float s = d < 0.0f ? -1.0f : 1.0f;
@@ -26,6 +24,13 @@ void nlerp(float a[4], const float b[4], float w) {
     }
 }
 
+void blend_board(float a[kBoardTracks], const float b[kBoardTracks], float w) {
+    nlerp(a, b, w);
+    for (int c = kPx; c <= kPz; ++c) a[c] += w * (b[c] - a[c]);
+}
+
+namespace {
+
 // The deepest a stack of groups goes: each push adds one, each stack takes one.
 constexpr int kStack = 8;
 
@@ -39,6 +44,7 @@ void MixPose::clear() {
     }
     std::fill(hips, hips + 3, 0.0f);
     std::fill(board, board + kBoardTracks, 0.0f);
+    board[kQw] = 1.0f;
 }
 
 const Clip* find_clip(jak::AnimId id) {
@@ -76,10 +82,9 @@ void sample(const Clip& clip, float frame, MixPose& out) {
     for (int c = 0; c < 3; ++c) {
         out.hips[c] = clip.hips[f0 * 3 + c] + w * (clip.hips[f1 * 3 + c] - clip.hips[f0 * 3 + c]);
     }
-    for (int c = 0; c < kBoardTracks; ++c) {
-        const float a = clip.board[f0 * kBoardTracks + c], b = clip.board[f1 * kBoardTracks + c];
-        out.board[c] = a + w * (b - a);
-    }
+    const float* b0 = clip.board + f0 * kBoardTracks;
+    std::memcpy(out.board, b0, sizeof(float) * kBoardTracks);
+    if (w > 0.0f) blend_board(out.board, clip.board + f1 * kBoardTracks, w);
 }
 
 void blend(MixPose& a, const MixPose& b, float w) {
@@ -90,14 +95,7 @@ void blend(MixPose& a, const MixPose& b, float w) {
         a.used[j] = true;
     }
     for (int c = 0; c < 3; ++c) a.hips[c] += w * (b.hips[c] - a.hips[c]);
-    for (int c = 0; c < kBoardTracks; ++c) {
-        float d = b.board[c] - a.board[c];
-        if (c != kLift) {
-            // Angles the shorter way round: a flip's end (360) blends into the stance's 0 as 0.
-            d = std::remainder(d, 360.0f);
-        }
-        a.board[c] += w * d;
-    }
+    blend_board(a.board, b.board, w);
 }
 
 void mix(const jak::JointControl& jc, MixPose& out) {

@@ -406,8 +406,6 @@ void tick_ride(bool toggle_pressed) {
     }
 }
 
-// The point flips turn about: his middle, above the board (model units).
-constexpr float kPivot[3] = {0.0f, 0.0f, 2.8f};
 constexpr float kTwoPi = 6.2831853f;
 
 // The board's spin (its main joint's twist) turns him with it; Jak's y turn is the game's z turn the
@@ -508,7 +506,7 @@ void show_ride() {
                             ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
                             : 0.0f;
     g_ride.look.update(mixed, motion, board_spin(), upper, dt);
-    const std::vector<rac1::JointOut> js = g_ride.look.joints(kPivot);
+    const std::vector<rac1::JointOut> js = g_ride.look.joints();
     std::vector<openrac_joint_offset> offsets(js.size());
     for (size_t i = 0; i < js.size(); ++i) {
         offsets[i].joint = js[i].joint;
@@ -517,76 +515,45 @@ void show_ride() {
     }
     g_mod->hero_set_joints(offsets);
 
-    // The board: the body's rows in the game's axes, its spin (the main joint's twist) about up.
-    // The mesh is y-up with its nose on +z (tools/make_board.py); its x is mirrored so the matrix
-    // keeps its handedness (the board is the same both sides).
-    jak::Mat m = body_matrix(t);
-    const float twist = g_ride.rt->main.mode == jak::JointModMode::rotate ? g_ride.rt->main.twist_y : 0.0f;
-    Vec right = m.v[0], forward = m.v[2];
-    if (twist != 0.0f) {
-        jak::vector_rotate_y(right, m.v[0], twist);
-        jak::vector_rotate_y(forward, m.v[2], twist);
-    }
-    float r[3], u[3], f[3], p[3];
-    rac1::to_game_dir(right, r);
-    rac1::to_game_dir(m.v[1], u);
-    rac1::to_game_dir(forward, f);
-    rac1::to_game_point(m.v[3], p);
-
-    // The clip's board under his feet: up by its lift, nose up (about the board's left), toe edge
-    // down (about its nose), turned about up. Model units, at his scale.
-    {
-        const float* bt = g_ride.look.pose().board;
-        const float lift = bt[rac1::kLift] * scale;
-        for (int k = 0; k < 3; ++k) p[k] += u[k] * lift;
-        const auto turn = [&](const float axis[3], float deg) {
-            if (deg == 0.0f) return;
-            const float h = 0.5f * deg * (kTwoPi / 360.0f), sn = std::sin(h);
-            const float q[4] = {axis[0] * sn, axis[1] * sn, axis[2] * sn, std::cos(h)};
-            float o[3];
-            qrot(q, r, o); std::copy(o, o + 3, r);
-            qrot(q, u, o); std::copy(o, o + 3, u);
-            qrot(q, f, o); std::copy(o, o + 3, f);
-        };
-        const float up[3] = {u[0], u[1], u[2]}, nose[3] = {f[0], f[1], f[2]};
-        const float left[3] = {-r[0], -r[1], -r[2]};
-        turn(up, bt[rac1::kYaw]);
-        turn(left, -bt[rac1::kPitch]);
-        turn(nose, bt[rac1::kRoll]);
-    }
-    // The board's own open and close (Jak II's board-open / board-close on the board's skeleton):
-    // folded on his back (as Jak carries it), it unfolds under his feet, and folds back the same way.
+    // The board: where the clip has it (its turn and place in his model space: x his heading, y his
+    // left, z up), turned with him by the spin, then into the game's axes. The mesh is y-up with its
+    // nose on +z (tools/make_board.py); its x is mirrored so the matrix keeps its handedness (the
+    // board is the same both sides).
+    // His model's frame (the pose above): at his feet, turned by his heading only.
+    const float* p = pose.position;
+    const float f[3] = {std::cos(yaw), std::sin(yaw), 0.0f}, l[3] = {-std::sin(yaw), std::cos(yaw), 0.0f};
+    const float u[3] = {0.0f, 0.0f, 1.0f};
+    const float* bt = g_ride.look.pose().board;
+    const float bq[4] = {bt[rac1::kQx], bt[rac1::kQy], bt[rac1::kQz], bt[rac1::kQw]};
+    // The body turns by the conjugate of its root's spin (see RideAnimator::joints): so does the board.
+    const float hs = -0.5f * g_ride.look.spin();
+    const float sq[4] = {0.0f, 0.0f, std::sin(hs), std::cos(hs)};
+    // The board's open and close (Jak II's board-open / board-close on the board's own skeleton):
+    // it grows from folded as it opens, and folds back the same way.
     constexpr float kFolded = 0.35f;
     const float open = board_open(*g_ride.rt);
-    if (open < 1.0f) {
-        const float k = open * open * (3.0f - 2.0f * open);
-        const float back[3] = {pose.position[0], pose.position[1], pose.position[2] + 0.8f * kPivot[2] * scale};
-        for (int c = 0; c < 3; ++c) {
-            p[c] = back[c] + k * (p[c] - back[c]);
-            const float size = kFolded + (1.0f - kFolded) * k;
-            r[c] *= size;
-            u[c] *= size;
-            f[c] *= size;
-        }
-    }
-    // A flip turns the board with him, about the same point and axis (in the world: about his left,
-    // the yaw's (-sin, cos, 0)), the way his root turns (the conjugate of its quaternion, see
-    // RideAnimator::joints): nose down. The spin is the board's own twist above.
-    const float half = -0.5f * g_ride.look.flip();
-    if (half != 0.0f) {
-        const float axis[3] = {-std::sin(yaw), std::cos(yaw), 0.0f};
-        const float q[4] = {axis[0] * std::sin(half), axis[1] * std::sin(half), 0.0f, std::cos(half)};
-        const float piv[3] = {pose.position[0], pose.position[1], pose.position[2] + kPivot[2] * scale};
-        float d[3] = {p[0] - piv[0], p[1] - piv[1], p[2] - piv[2]};
-        float o[3];
-        qrot(q, d, o);
-        for (int k = 0; k < 3; ++k) p[k] = piv[k] + o[k];
-        qrot(q, r, o); std::copy(o, o + 3, r);
-        qrot(q, u, o); std::copy(o, o + 3, u);
-        qrot(q, f, o); std::copy(o, o + 3, f);
-    }
-    const float mat[16] = {-r[0], -r[1], -r[2], 0.0f, u[0], u[1], u[2], 0.0f,
-                           f[0],  f[1],  f[2],  0.0f, p[0], p[1], p[2], 1.0f};
+    const float k = open * open * (3.0f - 2.0f * open);
+    const float size = kFolded + (1.0f - kFolded) * k;
+    const auto to_game = [&](const float v[3], float out[3]) {
+        float a[3], b[3];
+        qrot(sq, v, a);
+        std::copy(a, a + 3, b);
+        for (int c = 0; c < 3; ++c) out[c] = b[0] * f[c] + b[1] * l[c] + b[2] * u[c];
+    };
+    const float nose_m[3] = {1.0f, 0.0f, 0.0f}, left_m[3] = {0.0f, 1.0f, 0.0f}, up_m[3] = {0.0f, 0.0f, 1.0f};
+    float nose[3], left[3], up[3], o[3];
+    qrot(bq, nose_m, o);
+    to_game(o, nose);
+    qrot(bq, left_m, o);
+    to_game(o, left);
+    qrot(bq, up_m, o);
+    to_game(o, up);
+    const float place[3] = {bt[rac1::kPx] * scale, bt[rac1::kPy] * scale, bt[rac1::kPz] * scale};
+    to_game(place, o);
+    const float mat[16] = {size * left[0], size * left[1], size * left[2], 0.0f,
+                           size * up[0],   size * up[1],   size * up[2],   0.0f,
+                           size * nose[0], size * nose[1], size * nose[2], 0.0f,
+                           p[0] + o[0],    p[1] + o[1],    p[2] + o[2],    1.0f};
     if (g_prop < 0 || !g_mod->prop_pose(g_prop, mat)) {
         g_prop = g_mod->prop_create("assets/board.glb");
         if (g_set.trace) g_mod->info("board prop " + std::to_string(g_prop) + " hero scale " + std::to_string(scale));

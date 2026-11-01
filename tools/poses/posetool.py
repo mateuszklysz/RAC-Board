@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Mateusz Kłysz
-"""Ratchet's skeleton for authoring poses: his standing pose (seq 0) as the base, joint offsets on
-top (local q * d, as the port's mode-0 joint modifier), and a flat-shaded preview to PNG. It reads
-his model from your own extracted level data (OpenRAC's level_01/mobys/moby_0.glb); nothing of it
-is written out, only the offsets."""
+"""Ratchet's skeleton: his standing pose (seq 0), the base the mod's joint offsets go on (local
+q * d, as the port's mode-0 joint modifier). It reads his model from your own extracted level data
+(OpenRAC's level_01/mobys/moby_0.glb); nothing of it is written out."""
 import json, struct, math
 import numpy as np
-from PIL import Image, ImageDraw
 
 
 
@@ -121,87 +119,3 @@ class Rig:
             p = self.parent.get(nd)
             G[k] = G[self.idx[p]] @ m if p in self.idx else m
         return G
-
-    def deltas_from_world(self, seq, frame, world):
-        """Local deltas (d per joint, q*d) that turn joints by world-space (model-space) rotations:
-        world = {joint: (axis, degrees)}, applied root first, each bone turned about its own pivot
-        with its children carried along."""
-        rot, tr = self.local_pose(seq, frame)
-        G = self.globals(rot, tr)
-        newrot = list(rot)
-        Gn = [None]*len(self.joints)
-        for k, nd in enumerate(self.joints):
-            p = self.parent.get(nd)
-            Pn = Gn[self.idx[p]] if p in self.idx else np.eye(4)
-            P0 = G[self.idx[p]] if p in self.idx else np.eye(4)
-            # The joint's world rotation: its parent's new one times its own local, then the extra
-            # world turn of this joint.
-            R = Pn[:3, :3] @ qmat(rot[k])
-            if k in world:
-                turns = world[k] if isinstance(world[k], list) else [world[k]]
-                for axis, deg in turns:
-                    R = qmat(qaxis(axis, deg)) @ R
-            loc = np.linalg.inv(Pn[:3, :3]) @ R
-            newrot[k] = mat_q(loc)
-            m = np.eye(4); m[:3, :3] = loc; m[:3, 3] = tr[k]
-            Gn[k] = Pn @ m
-        d = {}
-        for k in range(len(self.joints)):
-            dq = qmul(qinv(rot[k]), newrot[k])
-            if abs(dq[3]) < 0.99999 and np.linalg.norm(dq[:3]) > 1e-4:
-                d[k] = dq / np.linalg.norm(dq)
-        return d
-
-    def render(self, seq, frame, deltas=None, trans=None, size=360, views=("side", "front"), title=""):
-        rot, tr = self.local_pose(seq, frame)
-        if deltas:
-            rot = [qmul(rot[k], deltas[k]) if k in deltas else rot[k] for k in range(len(rot))]
-        if trans:
-            tr = [tr[k] + np.array(trans[k]) if k in trans else tr[k] for k in range(len(tr))]
-        G = self.globals(rot, tr)
-        skin = np.array([G[k] @ self.ibm[k] for k in range(len(G))])
-        tris = []
-        for pos, jo, we, ind in self.prims:
-            P = np.c_[pos, np.ones(len(pos))]
-            V = np.zeros((len(pos), 3))
-            for c in range(4):
-                M = skin[jo[:, c]]
-                V += we[:, c:c+1] * np.einsum('nij,nj->ni', M, P)[:, :3]
-            tris.append(V[ind])
-        T = np.concatenate(tris)
-        imgs = []
-        for view in views:
-            # forward of the model is +x (game yaw 0); side looks from -y, front from +x.
-            if view == "side":
-                X, Y, D = T[..., 0], T[..., 2], -T[..., 1]
-            elif view == "front":
-                X, Y, D = -T[..., 1], T[..., 2], T[..., 0]
-            elif view == "back":
-                X, Y, D = T[..., 1], T[..., 2], -T[..., 0]
-            else:  # three-quarter
-                c, s = math.cos(math.radians(35)), math.sin(math.radians(35))
-                X, Y, D = T[..., 0]*c - T[..., 1]*s, T[..., 2], -(T[..., 0]*s + T[..., 1]*c)
-            im = Image.new('RGB', (size, size), (235, 235, 240))
-            dr = ImageDraw.Draw(im)
-            sc = size / 11.0
-            ox, oy = size/2, size - 10
-            n = np.cross(T[:, 1]-T[:, 0], T[:, 2]-T[:, 0])
-            order = np.argsort(D.mean(axis=1))
-            for t in order:
-                nn = np.linalg.norm(n[t]) or 1
-                if view == "side":
-                    l = abs(-n[t][1])/nn
-                elif view in ("front", "back"):
-                    l = abs(n[t][0])/nn
-                else:
-                    l = abs(n[t][0]*s + n[t][1]*c)/nn
-                g = int(80 + 150*l)
-                pts = [(ox + X[t][i]*sc, oy - Y[t][i]*sc) for i in range(3)]
-                dr.polygon(pts, fill=(g, int(g*0.9), int(g*0.7)))
-            dr.line([(0, oy), (size, oy)], fill=(120, 120, 120))
-            dr.text((4, 4), f"{title} {view}", fill=(0, 0, 0))
-            imgs.append(im)
-        out = Image.new('RGB', (size*len(imgs), size), 'white')
-        for i, im in enumerate(imgs):
-            out.paste(im, (i*size, 0))
-        return out

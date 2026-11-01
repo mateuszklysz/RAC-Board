@@ -13,8 +13,6 @@ namespace {
 
 constexpr int kChannels = static_cast<int>(Channel::count);
 constexpr float kTwoPi = 6.2831853f;
-// How far his hips drop with the knees' channel (model units).
-constexpr float kCrouchDrop = 0.35f;
 // The highest joint the clips turn, plus one.
 constexpr uint32_t kJoints = kPoseJoints;
 
@@ -24,15 +22,6 @@ void qmul(const float a[4], const float b[4], float out[4]) {
                         a[3] * b[2] + b[3] * a[2] + (a[0] * b[1] - a[1] * b[0]),
                         a[3] * b[3] - (a[0] * b[0] + a[1] * b[1] + a[2] * b[2])};
     std::copy(r, r + 4, out);
-}
-
-void rotate(const float q[4], const float v[3], float out[3]) {
-    const float p[4] = {v[0], v[1], v[2], 0.0f};
-    const float c[4] = {-q[0], -q[1], -q[2], q[3]};
-    float t[4], r[4];
-    qmul(q, p, t);
-    qmul(t, c, r);
-    std::copy(r, r + 3, out);
 }
 
 } // namespace
@@ -52,45 +41,22 @@ void RideAnimator::reset() {
 }
 
 void RideAnimator::update(const MixPose& pose, const Motion& m, float spin, float upper_twist, float dt) {
-    // The clips' pose, followed rather than copied: each joint eases toward it, the arms slower than
-    // the body, so a change of clip (Jak's 0.05 s blends) flows instead of snapping, and his own
-    // standing pose (after reset) eases into the first clip.
+    // The clips' pose, followed closely rather than copied: a clip that starts without one of Jak's
+    // blends (a one-frame jump, the first clip after his own standing pose) flows in instead of
+    // snapping. Legs and board ease alike, so his feet stay on it.
     if (dt > 0.0f) {
+        const float a = 1.0f - std::exp(-dt / 0.04f);
         for (int j = 0; j < kPoseJoints; ++j) {
             if (!pose.used[j] && !m_pose.used[j]) continue;
-            const float tau = (j >= 53 && j <= 91) ? 0.11f : j == 8 ? 0.09f : 0.06f;
-            const float a = 1.0f - std::exp(-dt / tau);
-            float b[4] = {pose.q[j][0], pose.q[j][1], pose.q[j][2], pose.q[j][3]};
-            if (!pose.used[j]) {
-                b[0] = b[1] = b[2] = 0.0f;
-                b[3] = 1.0f;
-            }
-            float* q = m_pose.q[j];
-            const float d = q[0] * b[0] + q[1] * b[1] + q[2] * b[2] + q[3] * b[3];
-            const float sg = d < 0.0f ? -1.0f : 1.0f;
-            float n = 0.0f;
-            for (int c = 0; c < 4; ++c) {
-                q[c] += a * (sg * b[c] - q[c]);
-                n += q[c] * q[c];
-            }
-            n = std::sqrt(n);
-            if (n > 1e-6f) {
-                for (int c = 0; c < 4; ++c) q[c] /= n;
-            }
+            const float id[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+            nlerp(m_pose.q[j], pose.used[j] ? pose.q[j] : id, a);
             m_pose.used[j] = true;
         }
-        const float a = 1.0f - std::exp(-dt / 0.06f);
         for (int c = 0; c < 3; ++c) m_pose.hips[c] += a * (pose.hips[c] - m_pose.hips[c]);
-        for (int c = 0; c < kBoardTracks; ++c) {
-            float d = pose.board[c] - m_pose.board[c];
-            if (c != kLift) d = std::remainder(d, 360.0f);
-            // The flip follows closely: the board turns with it.
-            m_pose.board[c] += (c == kFlip ? 1.0f - std::exp(-dt / 0.03f) : a) * d;
-        }
+        blend_board(m_pose.board, pose.board, a);
     } else {
         m_pose = pose;
     }
-    m_flip = m_pose.board[kFlip] * (kTwoPi / 360.0f);
     m_spin = spin;
     // The upper-body joint-mod's twist, as the logic sets it (degrees on the channel).
     m_chan[static_cast<int>(Channel::upper_twist)].x = upper_twist * (360.0f / kTwoPi);
@@ -100,13 +66,11 @@ void RideAnimator::update(const MixPose& pose, const Motion& m, float spin, floa
     const auto wave = [t](float hz, float phase) { return std::sin(kTwoPi * hz * t + phase); };
     const auto clampf = [](float x, float lo, float hi) { return std::clamp(x, lo, hi); };
 
-    // The clips carry the riding; this only keeps him alive between their keys: small, soft.
-    const bool air = !m.grounded;
+    // Ears, tail and face: Jak has none of them, so they move on their own: blown by the speed,
+    // thrown by turns, bumps, landings and the fall.
     const float wind = clampf(m.speed / 18.0f, 0.0f, 1.0f);
     const float bump = clampf(-m.az * 0.012f, -0.6f, 0.9f);
     const float turn = clampf(m.yaw_rate * 0.4f, -1.0f, 1.0f);
-
-    // A landing: the knees take it, arms and ears drop and come back, he blinks.
     const bool landed = m.grounded && !m_was_grounded;
     const bool took_off = !m.grounded && m_was_grounded && m.vz > 1.0f;
     m_was_grounded = m.grounded;
@@ -114,55 +78,22 @@ void RideAnimator::update(const MixPose& pose, const Motion& m, float spin, floa
     auto ch = [c](Channel k) -> Spring& { return c[static_cast<int>(k)]; };
     if (landed) {
         const float hit = clampf(-m.vz * 0.3f, 1.0f, 6.0f);
-        ch(Channel::crouch).v += 1.6f * hit;
-        ch(Channel::spine_pump).v += 0.8f * hit;
-        ch(Channel::arms_out).v += 0.5f * hit;
-        ch(Channel::head_nod).v += 0.4f * hit;
         ch(Channel::ear_l_up).v -= 0.9f * hit;
         ch(Channel::ear_r_up).v -= 0.8f * hit;
         ch(Channel::tail_up).v -= 0.6f * hit;
         ch(Channel::jaw).v += 0.3f * hit;
         m_blink_at = std::min(m_blink_at, t);
     }
-
-    // The pop: legs kick long, arms fling up, ears up.
     if (took_off) {
         const float pop = clampf(m.vz * 0.3f, 1.0f, 4.0f);
-        ch(Channel::crouch).v -= 1.6f * pop;
-        ch(Channel::arms_out).v += 1.2f * pop;
-        ch(Channel::head_nod).v -= 0.4f * pop;
         ch(Channel::ear_l_up).v += 0.8f * pop;
         ch(Channel::ear_r_up).v += 0.7f * pop;
         ch(Channel::tail_up).v += 0.6f * pop;
         ch(Channel::jaw).v += 0.3f * pop;
     }
-    // In the air the legs follow the arc: long while rising, drawn up at the top, reaching for the
-    // ground as he falls; the arms rise with the climb and spread for balance on the way down.
-    const float rise = clampf(m.vz / 6.0f, 0.0f, 1.0f), drop = clampf(-m.vz / 8.0f, 0.0f, 1.0f);
-    const float apex = 1.0f - clampf(std::fabs(m.vz) / 6.0f, 0.0f, 1.0f);
-    const float air_knees = -0.5f * rise + 0.45f * apex - 0.4f * drop;
-    const float air_arms = 0.45f * rise + 0.15f * apex + 0.3f * drop;
-    // Knees: a soft suspension under the bumps and a slow balance.
-    ch(Channel::crouch).step((air ? air_knees : 0.04f * wave(0.5f, 0.0f)) + 0.6f * bump, 3.0f, 0.32f, dt);
-    // Arms: a little balance sway each, out with the push of a speed-up; elbows and wrists trail.
-    ch(Channel::arms_out).step(0.06f * wave(0.45f, 0.3f) + clampf(m.az * 0.004f, -0.2f, 0.4f) + (air ? air_arms : 0.0f),
-                               2.1f, 0.3f, dt);
-    ch(Channel::arm_r_out).step(0.12f * wave(0.37f, 1.0f), 1.7f, 0.38f, dt);
-    ch(Channel::arm_l_out).step(0.12f * wave(0.41f, 0.0f), 1.9f, 0.38f, dt);
-    ch(Channel::arms_fwd).step(clampf(-m.accel_fwd * 0.02f, -0.6f, 0.6f) + 0.05f * wave(0.9f, 2.0f), 1.9f, 0.33f, dt);
-    ch(Channel::elbows).step(-0.1f * ch(Channel::arms_out).v + 0.06f * wave(0.6f, 1.4f), 2.8f, 0.3f, dt);
-    ch(Channel::wrists).step(-0.15f * ch(Channel::elbows).v + 0.08f * wave(0.8f, 0.5f), 3.6f, 0.25f, dt);
-    // Hips and back: a small sway, a pump with the knees.
-    ch(Channel::hip_roll).step(0.06f * wave(0.3f, 0.7f), 2.4f, 0.5f, dt);
-    ch(Channel::spine_pump).step(0.5f * ch(Channel::crouch).x + 0.04f * wave(0.5f, 1.8f), 2.8f, 0.42f, dt);
-    // Head: looks into the turn a little more than the clip, nods with the knees.
-    ch(Channel::head_yaw).step(0.5f * turn + 0.1f * wave(0.17f, 0.0f), 2.0f, 0.7f, dt);
-    ch(Channel::head_tilt).step(0.06f * wave(0.23f, 2.5f), 2.3f, 0.6f, dt);
-    ch(Channel::head_nod).step(-0.1f * ch(Channel::crouch).v + 0.05f * wave(0.5f, 0.4f), 3.2f, 0.4f, dt);
-    // Ears: blown back by the speed, floppy, thrown by the head's turn, the bumps and the fall.
-    const float head_swing = ch(Channel::head_yaw).v;
-    ch(Channel::ear_l_back).step(0.9f * wind + 0.3f * head_swing, 2.7f, 0.2f, dt);
-    ch(Channel::ear_r_back).step(0.9f * wind - 0.3f * head_swing, 3.0f, 0.2f, dt);
+    // Ears: blown back by the speed, floppy, thrown by the turns, the bumps and the fall.
+    ch(Channel::ear_l_back).step(0.9f * wind + 0.3f * turn, 2.7f, 0.2f, dt);
+    ch(Channel::ear_r_back).step(0.9f * wind - 0.3f * turn, 3.0f, 0.2f, dt);
     const float fall = clampf(-m.vz * 0.04f, -1.0f, 1.0f);
     ch(Channel::ear_l_up).step(-0.4f * wind + 0.5f * fall - bump + 0.1f * wave(0.33f, 0.0f), 2.6f, 0.18f, dt);
     ch(Channel::ear_r_up).step(-0.4f * wind + 0.5f * fall - bump + 0.1f * wave(0.29f, 1.0f), 2.9f, 0.18f, dt);
@@ -185,28 +116,11 @@ void RideAnimator::update(const MixPose& pose, const Motion& m, float spin, floa
     ch(Channel::blink).step(blink, 9.0f, 0.9f, dt);
 }
 
-void RideAnimator::root_turn(float q[4]) const {
-    // Spin about up (z), then the flip about his left (y): q = spin * flip.
-    const float s[4] = {0.0f, 0.0f, std::sin(m_spin * 0.5f), std::cos(m_spin * 0.5f)};
-    const float f[4] = {0.0f, std::sin(m_flip * 0.5f), 0.0f, std::cos(m_flip * 0.5f)};
-    qmul(s, f, q);
-}
-
-std::vector<JointOut> RideAnimator::joints(const float pivot[3]) const {
-    float hips[3] = {m_pose.hips[0], m_pose.hips[1], m_pose.hips[2]};
+std::vector<JointOut> RideAnimator::joints() const {
+    const float* hips = m_pose.hips;
     std::vector<JointOut> out;
-    float root[4];
-    root_turn(root);
-    if (root[3] < 0.99999f) {
-        // The root turns about the pivot: moved by pivot - R pivot. The game's matrices take a
-        // joint's quaternion as row vectors (quat_rows), so the turn it makes is the conjugate's.
-        JointOut r{0, {root[0], root[1], root[2], root[3]}, {}};
-        const float made[4] = {-root[0], -root[1], -root[2], root[3]};
-        float rp[3];
-        rotate(made, pivot, rp);
-        for (int c = 0; c < 3; ++c) r.t[c] = pivot[c] - rp[c];
-        out.push_back(r);
-    }
+    // The spin: the root turned about up (z) through his feet.
+    if (m_spin != 0.0f) out.push_back(JointOut{0, {0.0f, 0.0f, std::sin(m_spin * 0.5f), std::cos(m_spin * 0.5f)}, {}});
     // The channels' turns, per joint, after the pose's (in the joint's frame as posed).
     float extra[kJoints][4];
     bool moved[kJoints] = {};
@@ -228,7 +142,6 @@ std::vector<JointOut> RideAnimator::joints(const float pivot[3]) const {
             }
         }
     }
-    hips[2] -= kCrouchDrop * m_chan[static_cast<int>(Channel::crouch)].x;
 
     for (uint32_t j = 1; j < kJoints; ++j) {
         if (!m_pose.used[j] && !moved[j] && j != 1) continue;
