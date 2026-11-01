@@ -2,7 +2,10 @@
 // Copyright (c) 2026 Mateusz Kłysz
 // Between Ratchet & Clank's world and Jak II's: units and axes.
 //
-// One game unit of Ratchet & Clank is taken as one metre, 4096 of Jak II's units. Ratchet & Clank
+// Jak II's world is shrunk to Ratchet's size: one game unit of Ratchet & Clank is 4096 / kJakScale of
+// Jak II's units. kJakScale is Ratchet's shoulder height over Jak's (0.86 / 2.04 game units, Jak's
+// from his skeleton's bind pose on the disc), so the board's speeds, jumps, collision and camera keep
+// Jak II's proportions to the rider. Time is not scaled. Ratchet & Clank
 // is z-up with x right and y forward; Jak II is y-up with x right and z forward. The map swaps y
 // and z, so right, up and forward stay right, up and forward on screen: the board turns the way
 // the stick points. The swap is a mirror, which turns a triangle's winding round (rac_board.cpp,
@@ -15,7 +18,8 @@
 
 namespace rac1 {
 
-constexpr float kUnit = 4096.0f; // Jak II units in one game unit
+constexpr float kJakScale = 0.42f;           // Ratchet's size over Jak's
+constexpr float kUnit = 4096.0f / kJakScale; // Jak II units in one game unit
 
 inline jak::Vec to_jak_point(const float p[3]) {
     return jak::Vec{p[0] * kUnit, p[2] * kUnit, p[1] * kUnit, 1.0f};

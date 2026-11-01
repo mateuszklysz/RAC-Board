@@ -472,8 +472,8 @@ namespace jak {
 // mod-var-jump's look-up of the playing group's 'collide-offset lump (core's
 // board_from_core.hpp): 0 when there is no (ja-group) or no lump table, 1 with the offset, 2 when the
 // table lacks the lump.
-// TODO(art): the lumps are art data (the jakb-board animations' extra res tables), not in the
-// OpenGOAL repo; until anim_table.cpp carries them every group reads as having no table (0).
+// None of the board's animations (jak-board in ART.CGO) has an extra res table on the disc, so every
+// group the board plays reads as having no table (0), as in the game.
 int ja_group_collide_offset(Target& self, Vec& out) {
     (void)out;
     if (ja_group(skel(self), 0) == AnimId::none) {
