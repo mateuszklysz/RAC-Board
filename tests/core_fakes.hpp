@@ -2,16 +2,14 @@
 // Copyright (c) 2026 Mateusz Kłysz
 // Stand-ins for what the movement core calls in the collision and board parts
 // (jak/collide_from_core.hpp, board/board_from_core.hpp), so the core's tests run alone: a target
-// shape of plain records, a flat floor at y = 0 for the move and the ground probe. They are weak, so
-// the real ones win when the library has them.
+// shape of plain records, a flat floor at y = 0 for the move and the ground probe. The library is
+// static, so its parts that hold the real ones are left out of the test's link.
 #pragma once
 
 #include "board/board_from_core.hpp"
 #include "jak/collide_from_core.hpp"
 #include "jak/math.hpp"
 #include "jak/target.hpp"
-
-#define CORE_FAKE __attribute__((weak))
 
 namespace fake {
 struct Prim {
@@ -27,18 +25,18 @@ inline Prim* pp(jak::CollideShapePrim* p) { return reinterpret_cast<Prim*>(p); }
 } // namespace fake
 
 namespace jak {
-CORE_FAKE CollideShapePrim* root_prim(Target&) { return fake::cp(&fake::prims[10]); }
-CORE_FAKE CollideShapePrim* collision_sphere(Target&, int i) { return fake::cp(&fake::prims[i]); }
-CORE_FAKE uint32_t& prim_action(CollideShapePrim* p) { return fake::pp(p)->action; }
-CORE_FAKE uint32_t& prim_collide_as(CollideShapePrim* p) { return fake::pp(p)->as; }
-CORE_FAKE uint32_t& prim_collide_with(CollideShapePrim* p) { return fake::pp(p)->with; }
-CORE_FAKE Vec& prim_local_sphere(CollideShapePrim* p) { return fake::pp(p)->local; }
-CORE_FAKE const Vec& prim_world_sphere(CollideShapePrim* p) { return fake::pp(p)->world; }
-CORE_FAKE int8_t& prim_transform_index(CollideShapePrim* p) { return fake::pp(p)->ti; }
-CORE_FAKE void modify_collide_as(Target&, int, uint32_t, uint32_t) {}
-CORE_FAKE void move_to_point(Target& self, const Vec& p) { self.control.trans = p; }
+CollideShapePrim* root_prim(Target&) { return fake::cp(&fake::prims[10]); }
+CollideShapePrim* collision_sphere(Target&, int i) { return fake::cp(&fake::prims[i]); }
+uint32_t& prim_action(CollideShapePrim* p) { return fake::pp(p)->action; }
+uint32_t& prim_collide_as(CollideShapePrim* p) { return fake::pp(p)->as; }
+uint32_t& prim_collide_with(CollideShapePrim* p) { return fake::pp(p)->with; }
+Vec& prim_local_sphere(CollideShapePrim* p) { return fake::pp(p)->local; }
+const Vec& prim_world_sphere(CollideShapePrim* p) { return fake::pp(p)->world; }
+int8_t& prim_transform_index(CollideShapePrim* p) { return fake::pp(p)->ti; }
+void modify_collide_as(Target&, int, uint32_t, uint32_t) {}
+void move_to_point(Target& self, const Vec& p) { self.control.trans = p; }
 // The floor y = 0 under everything.
-CORE_FAKE bool find_ground(Target& self, PatSurface& pat, uint32_t, float, float, float) {
+bool find_ground(Target& self, PatSurface& pat, uint32_t, float, float, float) {
     fake::ground_finds++;
     self.control.gspot_pos = self.control.trans;
     self.control.gspot_pos.y = 0.0f;
@@ -46,9 +44,9 @@ CORE_FAKE bool find_ground(Target& self, PatSurface& pat, uint32_t, float, float
     pat = PatSurface{};
     return true;
 }
-CORE_FAKE bool fill_and_probe_using_spheres(Target&, const Vec*, uint32_t) { return false; }
+bool fill_and_probe_using_spheres(Target&, const Vec*, uint32_t) { return false; }
 // The move on a flat floor at y = 0: integrate, stop on the floor and stand on it.
-CORE_FAKE void target_integrate_and_collide(Target& self, const Vec& transv, float) {
+void target_integrate_and_collide(Target& self, const Vec& transv, float) {
     ControlInfo& c = self.control;
     c.status = 0;
     vector_add_float_mul(c.trans, c.trans, transv, seconds_per_frame(self));
@@ -64,13 +62,13 @@ CORE_FAKE void target_integrate_and_collide(Target& self, const Vec& transv, flo
         c.coverage = 1.0f;
     }
 }
-CORE_FAKE bool enabled_gun_p(Target&) { return false; }
-CORE_FAKE void do_edge_grabs_target(Target&) {}
-CORE_FAKE void find_overlapping_shapes_target(Target&) {}
-CORE_FAKE void rail_surface_touch(Target&) {}
-CORE_FAKE void target_board_joint_points(Target&) {}
-CORE_FAKE Symbol next_state_name(const Target&) { return fake::next_state; }
-CORE_FAKE void ja_post(Target&) {}
-CORE_FAKE void joint_points(Target&) {}
-CORE_FAKE int ja_group_collide_offset(Target&, Vec&) { return 0; }
+bool enabled_gun_p(Target&) { return false; }
+void do_edge_grabs_target(Target&) {}
+void find_overlapping_shapes_target(Target&) {}
+void rail_surface_touch(Target&) {}
+void target_board_joint_points(Target&) {}
+Symbol next_state_name(const Target&) { return fake::next_state; }
+void ja_post(Target&) {}
+void joint_points(Target&) {}
+int ja_group_collide_offset(Target&, Vec&) { return 0; }
 } // namespace jak
