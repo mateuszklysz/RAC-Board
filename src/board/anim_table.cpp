@@ -6,10 +6,10 @@
 // jak-project, ISC License, Copyright (c) 2020-2026 OpenGOAL Team; THIRD_PARTY.md).
 //
 // The numbers are Jak II's art data, which lives in the game's files and not in OpenGOAL's code or
-// configuration (art-elts.gc and art-group-info.min.json give only names and indices). Until they are
-// filled in from a legally owned copy, every entry is a placeholder: 30 frames, artist numbering from
-// 0 in steps of 1, speed 1, except where the code's own ja-aframe calls show the range it expects
-// (the turn animations span the bank's turn-frames, -10..10; the rail ones -5..5).
+// configuration (art-elts.gc and art-group-info.min.json give only names and indices). They were read
+// from a legally owned copy (NTSC-U, ART.CGO: jak-board+0-ag and board-ag): only these numbers, no
+// animation. jakb-board-attack-pegasus is in a story level's art and stays a placeholder (31 frames,
+// artist numbering from 0 in steps of 1, speed 1).
 #include "board/anim.hpp"
 
 namespace jak {
@@ -18,94 +18,94 @@ namespace {
 
 // clang-format off
 const AnimInfo kAnims[] = {
-    // TODO(art): jakb-board-stance-ja: frames, artist-base, artist-step, speed unknown; identity at aframe 0 in target-board-grab.
-    {"jakb-board-stance-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-duck-turn-ja: frames, artist-base, artist-step, speed unknown; the stance's duck channel (num-func-chan of channel 0); halfpipe falling plays aframe 0.
-    {"jakb-board-duck-turn-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-turn-ja: frames, artist-base, artist-step, speed unknown; target-board-turn-anim plays aframes -10..10 (turn-frames).
-    {"jakb-board-turn-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-jump-kick-ja: frames, artist-base, artist-step, speed unknown; played to the end.
-    {"jakb-board-jump-kick-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-jump-ja: frames, artist-base, artist-step, speed unknown; aframes 8, 10, 12 in the halfpipe; the jump code reads (- 10 aframe).
-    {"jakb-board-jump-ja", 21, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-jump-loop-ja: frames, artist-base, artist-step, speed unknown; looped.
-    {"jakb-board-jump-loop-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-hit-ja: frames, artist-base, artist-step, speed unknown; played to the end; also target-hit-move's length.
-    {"jakb-board-hit-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-flip-forward-ja: frames, artist-base, artist-step, speed unknown; seeks aframe 15, then on from aframe 15.
-    {"jakb-board-flip-forward-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-turn-left-ja: frames, artist-base, artist-step, speed unknown; ground-tween channel 2 (left), frames from channel 0.
-    {"jakb-board-turn-left-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-turn-right-ja: frames, artist-base, artist-step, speed unknown; ground-tween channel 2 (right).
-    {"jakb-board-turn-right-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-turn-up-ja: frames, artist-base, artist-step, speed unknown; ground-tween channel 1 (up).
-    {"jakb-board-turn-up-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-turn-down-ja: frames, artist-base, artist-step, speed unknown; ground-tween channel 1 (down).
-    {"jakb-board-turn-down-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-hit-forward-ja: frames, artist-base, artist-step, speed unknown; only compared with.
-    {"jakb-board-hit-forward-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-ride-turn-back-ja: frames, artist-base, artist-step, speed unknown; ride-edge plays aframes -5..5.
-    {"jakb-board-ride-turn-back-ja", 11, -5.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-ride-turn-front-ja: frames, artist-base, artist-step, speed unknown; ride-edge plays aframes -5..5.
-    {"jakb-board-ride-turn-front-ja", 11, -5.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-ride-turn-right-ja: frames, artist-base, artist-step, speed unknown; ride-edge plays aframes -5..5.
-    {"jakb-board-ride-turn-right-ja", 11, -5.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-ride-turn-left-ja: frames, artist-base, artist-step, speed unknown; ride-edge plays aframes -5..5.
-    {"jakb-board-ride-turn-left-ja", 11, -5.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-get-on-ja: frames, artist-base, artist-step, speed unknown; played to the end at 1-2x.
-    {"jakb-board-get-on-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-get-off-ja: frames, artist-base, artist-step, speed unknown; aframes 11, 14 and 24 matter.
-    {"jakb-board-get-off-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-grenade-ja: frames, artist-base, artist-step, speed unknown; seeks aframe 19 (story only).
-    {"jakb-board-grenade-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-nosegrab-ja: frames, artist-base, artist-step, speed unknown; played to the end.
-    {"jakb-board-nosegrab-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-method-ja: frames, artist-base, artist-step, speed unknown; played to the end.
-    {"jakb-board-method-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-kickflip-a-ja: frames, artist-base, artist-step, speed unknown; played to the end.
-    {"jakb-board-kickflip-a-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-spin-ja: frames, artist-base, artist-step, speed unknown; played to the end at 0.95x.
-    {"jakb-board-spin-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-air-turn-ja: frames, artist-base, artist-step, speed unknown; the stance's duck channel when ducking below 0.
-    {"jakb-board-air-turn-ja", 21, -10.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-flip-backward-ja: frames, artist-base, artist-step, speed unknown; seeks aframe 10, then on from aframe 10.
-    {"jakb-board-flip-backward-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-flip-forward-loop-ja: frames, artist-base, artist-step, speed unknown; played to the end per extra flip.
-    {"jakb-board-flip-forward-loop-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-flip-backward-loop-ja: frames, artist-base, artist-step, speed unknown; played to the end per extra flip.
-    {"jakb-board-flip-backward-loop-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-method-loop-ja: frames, artist-base, artist-step, speed unknown; looped.
-    {"jakb-board-method-loop-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-method-end-ja: frames, artist-base, artist-step, speed unknown; played to the end at 1.5x.
-    {"jakb-board-method-end-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-nosegrab-loop-ja: frames, artist-base, artist-step, speed unknown; looped.
-    {"jakb-board-nosegrab-loop-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-nosegrab-end-ja: frames, artist-base, artist-step, speed unknown; played to the end at 1.5x.
-    {"jakb-board-nosegrab-end-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-noseflip-ja: frames, artist-base, artist-step, speed unknown; seeks aframe 20.
-    {"jakb-board-noseflip-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-jump-kickoff-ja: frames, artist-base, artist-step, speed unknown; the wall kick lands after aframe 31.
-    {"jakb-board-jump-kickoff-ja", 40, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-hit-elec-ja: frames, artist-base, artist-step, speed unknown; target-hit-move's length when shocked.
-    {"jakb-board-hit-elec-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-get-on-land-ja: frames, artist-base, artist-step, speed unknown; played to the end at 1.8x.
-    {"jakb-board-get-on-land-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-get-off-pre-ja: frames, artist-base, artist-step, speed unknown; played to the end at 1.5x.
-    {"jakb-board-get-off-pre-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-kickflip-b-ja: frames, artist-base, artist-step, speed unknown; played to the end at 1.05x.
-    {"jakb-board-kickflip-b-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-kickflip-c-ja: frames, artist-base, artist-step, speed unknown; played to the end.
-    {"jakb-board-kickflip-c-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): jakb-board-hit-get-off-ja: frames, artist-base, artist-step, speed unknown; seeks aframe 24 at 2.5x.
-    {"jakb-board-hit-get-off-ja", 30, 0.0f, 1.0f, 1.0f, true},
+    // jakb-board-stance-ja: identity at aframe 0 in target-board-grab.
+    {"jakb-board-stance-ja", 1, 0.0f, 1.0f, 0.5f, false},
+    // jakb-board-duck-turn-ja: the stance's duck channel (num-func-chan of channel 0); halfpipe falling plays aframe 0.
+    {"jakb-board-duck-turn-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-turn-ja: target-board-turn-anim plays aframes -10..10 (turn-frames).
+    {"jakb-board-turn-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-jump-kick-ja: played to the end.
+    {"jakb-board-jump-kick-ja", 16, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-jump-ja: aframes 8, 10, 12 in the halfpipe; the jump code reads (- 10 aframe).
+    {"jakb-board-jump-ja", 11, 0.0f, 2.0999999046325684f, 0.4761914312839508f, false},
+    // jakb-board-jump-loop-ja: looped.
+    {"jakb-board-jump-loop-ja", 6, 21.0f, 2.0f, 0.5000004768371582f, false},
+    // jakb-board-hit-ja: played to the end; also target-hit-move's length.
+    {"jakb-board-hit-ja", 10, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-flip-forward-ja: seeks aframe 15, then on from aframe 15.
+    {"jakb-board-flip-forward-ja", 11, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-turn-left-ja: ground-tween channel 2 (left), frames from channel 0.
+    {"jakb-board-turn-left-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-turn-right-ja: ground-tween channel 2 (right).
+    {"jakb-board-turn-right-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-turn-up-ja: ground-tween channel 1 (up).
+    {"jakb-board-turn-up-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-turn-down-ja: ground-tween channel 1 (down).
+    {"jakb-board-turn-down-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-hit-forward-ja: only compared with.
+    {"jakb-board-hit-forward-ja", 10, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-ride-turn-back-ja: ride-edge plays aframes -5..5.
+    {"jakb-board-ride-turn-back-ja", 6, -5.0f, 2.0f, 0.5000004768371582f, false},
+    // jakb-board-ride-turn-front-ja: ride-edge plays aframes -5..5.
+    {"jakb-board-ride-turn-front-ja", 6, -5.0f, 2.0f, 0.5000004768371582f, false},
+    // jakb-board-ride-turn-right-ja: ride-edge plays aframes -5..5.
+    {"jakb-board-ride-turn-right-ja", 6, -5.0f, 2.0f, 0.5000004768371582f, false},
+    // jakb-board-ride-turn-left-ja: ride-edge plays aframes -5..5.
+    {"jakb-board-ride-turn-left-ja", 6, -5.0f, 2.0f, 0.5000004768371582f, false},
+    // jakb-board-get-on-ja: played to the end at 1-2x.
+    {"jakb-board-get-on-ja", 14, 1.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-get-off-ja: aframes 11, 14 and 24 matter.
+    {"jakb-board-get-off-ja", 11, 10.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-grenade-ja: seeks aframe 19 (story only).
+    {"jakb-board-grenade-ja", 13, 0.0f, 3.0f, 0.1666671484708786f, false},
+    // jakb-board-nosegrab-ja: played to the end.
+    {"jakb-board-nosegrab-ja", 7, 0.0f, 2.0f, 0.2500002384185791f, false},
+    // jakb-board-method-ja: played to the end.
+    {"jakb-board-method-ja", 5, 1.0f, 2.0f, 0.2500002384185791f, false},
+    // jakb-board-kickflip-a-ja: played to the end.
+    {"jakb-board-kickflip-a-ja", 3, 0.0f, 2.5f, 0.2000001221895218f, false},
+    // jakb-board-spin-ja: played to the end at 0.95x.
+    {"jakb-board-spin-ja", 12, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-air-turn-ja: the stance's duck channel when ducking below 0.
+    {"jakb-board-air-turn-ja", 11, -10.0f, 2.0f, 0.5000009536743164f, false},
+    // jakb-board-flip-backward-ja: seeks aframe 10, then on from aframe 10.
+    {"jakb-board-flip-backward-ja", 11, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-flip-forward-loop-ja: played to the end per extra flip.
+    {"jakb-board-flip-forward-loop-ja", 7, 15.0f, 2.0f, 0.2500002384185791f, false},
+    // jakb-board-flip-backward-loop-ja: played to the end per extra flip.
+    {"jakb-board-flip-backward-loop-ja", 7, 10.0f, 2.0f, 0.2500002384185791f, false},
+    // jakb-board-method-loop-ja: looped.
+    {"jakb-board-method-loop-ja", 9, 9.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-method-end-ja: played to the end at 1.5x.
+    {"jakb-board-method-end-ja", 5, 25.0f, 2.25f, 0.2222224622964859f, false},
+    // jakb-board-nosegrab-loop-ja: looped.
+    {"jakb-board-nosegrab-loop-ja", 13, 12.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-nosegrab-end-ja: played to the end at 1.5x.
+    {"jakb-board-nosegrab-end-ja", 4, 13.0f, 2.0f, 0.25000011920928955f, false},
+    // jakb-board-noseflip-ja: seeks aframe 20.
+    {"jakb-board-noseflip-ja", 15, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-jump-kickoff-ja: the wall kick lands after aframe 31.
+    {"jakb-board-jump-kickoff-ja", 12, 16.0f, 2.090909004211426f, 0.2391309142112732f, false},
+    // jakb-board-hit-elec-ja: target-hit-move's length when shocked.
+    {"jakb-board-hit-elec-ja", 9, 0.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-get-on-land-ja: played to the end at 1.8x.
+    {"jakb-board-get-on-land-ja", 3, 1.0f, 1.0f, 0.33333298563957214f, false},
+    // jakb-board-get-off-pre-ja: played to the end at 1.5x.
+    {"jakb-board-get-off-pre-ja", 6, 0.0f, 2.0f, 0.2500002384185791f, false},
+    // jakb-board-kickflip-b-ja: played to the end at 1.05x.
+    {"jakb-board-kickflip-b-ja", 12, 5.0f, 2.0f, 0.2500004768371582f, false},
+    // jakb-board-kickflip-c-ja: played to the end.
+    {"jakb-board-kickflip-c-ja", 1, 28.0f, 1.0f, 0.5f, false},
+    // jakb-board-hit-get-off-ja: seeks aframe 24 at 2.5x.
+    {"jakb-board-hit-get-off-ja", 16, 0.0f, 2.0f, 0.2500004768371582f, false},
     // TODO(art): jakb-board-attack-pegasus-ja: frames, artist-base, artist-step, speed unknown; aframes 0..30, 17 closes the board (story only).
     {"jakb-board-attack-pegasus-ja", 31, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): board-board-idle-ja: frames, artist-base, artist-step, speed unknown; the board's skeleton (board-ag).
-    {"board-board-idle-ja", 2, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): board-open-ja: frames, artist-base, artist-step, speed unknown; the board's skeleton, played to the end.
-    {"board-open-ja", 30, 0.0f, 1.0f, 1.0f, true},
-    // TODO(art): board-close-ja: frames, artist-base, artist-step, speed unknown; the board's skeleton, played to the end.
-    {"board-close-ja", 30, 0.0f, 1.0f, 1.0f, true},
+    // board-board-idle-ja: the board's skeleton (board-ag).
+    {"board-board-idle-ja", 1, 0.0f, 1.0f, 1.0f, false},
+    // board-open-ja: the board's skeleton, played to the end.
+    {"board-open-ja", 16, 0.0f, 1.0f, 0.5f, false},
+    // board-close-ja: the board's skeleton, played to the end.
+    {"board-close-ja", 8, 15.0f, 1.0f, 0.5f, false},
 };
 // clang-format on
 static_assert(sizeof(kAnims) / sizeof(kAnims[0]) == static_cast<int>(AnimId::count),

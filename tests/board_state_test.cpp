@@ -67,8 +67,7 @@ int main() {
     // in the air the cushion follows the height: lerp-scale cushion..0 over 0..3 m.
     for (int i = 0; i < 10; i++) fake::frame(t, io);
     CHECK(b.cushion_offset < kTargetBoardBank.cushion);
-    // (the jump's art plays at a speed from time-to-apex; with the placeholder frame counts it has
-    // reached its loop by now)
+    // (the jump's art plays at a speed from time-to-apex: the jump or its loop by now)
     CHECK(anim_playing(rt.skel).group == AnimId::jakb_board_jump ||
           anim_playing(rt.skel).group == AnimId::jakb_board_jump_loop);
     // ---- the landing: jump -> hit-ground -> stance, with the shock pushed down ----
