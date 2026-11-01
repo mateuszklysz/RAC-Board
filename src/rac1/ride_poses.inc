@@ -223,4 +223,133 @@ constexpr JointTurn k_hit[] = {
 };
 constexpr KeyPose hit{k_hit, sizeof(k_hit) / sizeof(k_hit[0]), {0.000f, 0.000f, -0.400f}};
 
+constexpr ChannelTurn c_crouch[] = {
+    {98, {-0.12281f, 0.97307f, -0.19508f}, -14.0f},
+    {99, {-0.11311f, 0.97319f, -0.20027f}, 28.0f},
+    {100, {0.26515f, 0.96421f, -0.00001f}, -14.0f},
+    {92, {-0.23169f, 0.96983f, 0.07587f}, -14.0f},
+    {93, {-0.24347f, 0.96989f, 0.00558f}, 28.0f},
+    {94, {-0.57152f, 0.82059f, -0.00003f}, -14.0f},
+};
+constexpr ChannelTurn c_arms_out[] = {
+    {53, {0.98636f, 0.13827f, 0.08934f}, -24.0f},
+    {73, {0.98823f, -0.13993f, -0.06187f}, 24.0f},
+};
+constexpr ChannelTurn c_arms_fwd[] = {
+    {53, {0.00112f, 0.53704f, -0.84357f}, -22.0f},
+    {73, {0.12878f, 0.54248f, 0.83015f}, -22.0f},
+};
+constexpr ChannelTurn c_arm_r_out[] = {
+    {53, {0.98636f, 0.13827f, 0.08934f}, -20.0f},
+};
+constexpr ChannelTurn c_arm_l_out[] = {
+    {73, {0.98823f, -0.13993f, -0.06187f}, 20.0f},
+};
+constexpr ChannelTurn c_elbows[] = {
+    {54, {-0.86323f, 0.28131f, -0.41918f}, -28.0f},
+    {74, {-0.10624f, 0.11111f, 0.98812f}, -28.0f},
+};
+constexpr ChannelTurn c_wrists[] = {
+    {55, {0.33193f, -0.30934f, -0.89114f}, -22.0f},
+    {75, {0.91236f, 0.40602f, 0.05245f}, 22.0f},
+};
+constexpr ChannelTurn c_hip_roll[] = {
+    {1, {0.93720f, 0.27630f, -0.21289f}, 8.0f},
+    {4, {0.99281f, 0.06343f, -0.10155f}, -6.0f},
+};
+constexpr ChannelTurn c_spine_pump[] = {
+    {2, {-0.20101f, 0.97697f, -0.07156f}, 5.0f},
+    {4, {-0.06079f, 0.99773f, 0.02888f}, 7.0f},
+    {8, {-0.00733f, 0.99909f, 0.04213f}, -5.0f},
+};
+constexpr ChannelTurn c_head_yaw[] = {
+    {6, {0.01241f, -0.02501f, 0.99961f}, 8.0f},
+    {8, {-0.11076f, -0.04269f, 0.99293f}, 20.0f},
+};
+constexpr ChannelTurn c_head_nod[] = {
+    {8, {-0.00733f, 0.99909f, 0.04213f}, 14.0f},
+};
+constexpr ChannelTurn c_head_tilt[] = {
+    {8, {0.99382f, 0.00261f, 0.11098f}, 12.0f},
+};
+constexpr ChannelTurn c_ear_l_up[] = {
+    {41, {0.93539f, -0.33573f, 0.11105f}, 18.0f},
+    {42, {0.84655f, -0.52291f, 0.09959f}, 12.0f},
+    {43, {0.37650f, -0.84678f, -0.37578f}, 8.0f},
+};
+constexpr ChannelTurn c_ear_r_up[] = {
+    {44, {0.93528f, 0.33961f, 0.09956f}, -18.0f},
+    {45, {0.89736f, 0.43749f, -0.05781f}, -12.0f},
+    {46, {0.37634f, 0.76672f, -0.52013f}, -8.0f},
+};
+constexpr ChannelTurn c_ear_l_back[] = {
+    {41, {-0.11524f, 0.00749f, 0.99331f}, 16.0f},
+    {42, {-0.11125f, 0.00915f, 0.99375f}, 10.0f},
+    {43, {0.10083f, -0.36576f, 0.92523f}, 8.0f},
+};
+constexpr ChannelTurn c_ear_r_back[] = {
+    {44, {-0.11515f, 0.02603f, 0.99301f}, -16.0f},
+    {45, {-0.00239f, 0.13580f, 0.99073f}, -10.0f},
+    {46, {0.20470f, 0.47871f, 0.85378f}, -8.0f},
+};
+constexpr ChannelTurn c_tail_side[] = {
+    {104, {0.81842f, -0.17579f, 0.54709f}, 6.0f},
+    {105, {0.95518f, -0.17579f, 0.23820f}, 8.0f},
+    {106, {0.93234f, 0.03759f, 0.35966f}, 8.0f},
+};
+constexpr ChannelTurn c_tail_tip[] = {
+    {107, {0.68562f, 0.18672f, 0.70362f}, 10.0f},
+    {108, {0.37283f, 0.37085f, 0.85058f}, 12.0f},
+    {109, {0.43003f, 0.59300f, 0.68076f}, 12.0f},
+    {110, {0.36596f, 0.54430f, 0.75487f}, 12.0f},
+};
+constexpr ChannelTurn c_tail_up[] = {
+    {104, {0.05817f, 0.97252f, 0.22547f}, -6.0f},
+    {105, {0.13097f, 0.97252f, 0.19253f}, -6.0f},
+    {106, {-0.11932f, 0.97087f, 0.20783f}, -8.0f},
+    {107, {-0.46407f, 0.85679f, 0.22484f}, -8.0f},
+    {108, {-0.73452f, 0.67808f, 0.02632f}, -8.0f},
+};
+constexpr ChannelTurn c_jaw[] = {
+    {10, {-0.01098f, 0.99909f, 0.04133f}, 16.0f},
+};
+constexpr ChannelTurn c_blink[] = {
+    {19, {-0.01307f, 0.99906f, 0.04133f}, 68.0f},
+    {20, {-0.00527f, 0.99910f, 0.04221f}, 68.0f},
+};
+constexpr ChannelTurn c_brows[] = {
+    {26, {-0.01298f, 0.99585f, 0.09014f}, -16.0f},
+    {30, {-0.01105f, 0.99987f, 0.01166f}, -16.0f},
+};
+constexpr ChannelTurn c_snarl[] = {
+    {9, {-0.00733f, 0.99909f, 0.04213f}, -10.0f},
+};
+
+// Channels, in the order of rac1::Channel.
+constexpr Chan kChannels[] = {
+    {c_crouch, sizeof(c_crouch) / sizeof(c_crouch[0])},  // crouch
+    {c_arms_out, sizeof(c_arms_out) / sizeof(c_arms_out[0])},  // arms_out
+    {c_arms_fwd, sizeof(c_arms_fwd) / sizeof(c_arms_fwd[0])},  // arms_fwd
+    {c_arm_r_out, sizeof(c_arm_r_out) / sizeof(c_arm_r_out[0])},  // arm_r_out
+    {c_arm_l_out, sizeof(c_arm_l_out) / sizeof(c_arm_l_out[0])},  // arm_l_out
+    {c_elbows, sizeof(c_elbows) / sizeof(c_elbows[0])},  // elbows
+    {c_wrists, sizeof(c_wrists) / sizeof(c_wrists[0])},  // wrists
+    {c_hip_roll, sizeof(c_hip_roll) / sizeof(c_hip_roll[0])},  // hip_roll
+    {c_spine_pump, sizeof(c_spine_pump) / sizeof(c_spine_pump[0])},  // spine_pump
+    {c_head_yaw, sizeof(c_head_yaw) / sizeof(c_head_yaw[0])},  // head_yaw
+    {c_head_nod, sizeof(c_head_nod) / sizeof(c_head_nod[0])},  // head_nod
+    {c_head_tilt, sizeof(c_head_tilt) / sizeof(c_head_tilt[0])},  // head_tilt
+    {c_ear_l_up, sizeof(c_ear_l_up) / sizeof(c_ear_l_up[0])},  // ear_l_up
+    {c_ear_r_up, sizeof(c_ear_r_up) / sizeof(c_ear_r_up[0])},  // ear_r_up
+    {c_ear_l_back, sizeof(c_ear_l_back) / sizeof(c_ear_l_back[0])},  // ear_l_back
+    {c_ear_r_back, sizeof(c_ear_r_back) / sizeof(c_ear_r_back[0])},  // ear_r_back
+    {c_tail_side, sizeof(c_tail_side) / sizeof(c_tail_side[0])},  // tail_side
+    {c_tail_tip, sizeof(c_tail_tip) / sizeof(c_tail_tip[0])},  // tail_tip
+    {c_tail_up, sizeof(c_tail_up) / sizeof(c_tail_up[0])},  // tail_up
+    {c_jaw, sizeof(c_jaw) / sizeof(c_jaw[0])},  // jaw
+    {c_blink, sizeof(c_blink) / sizeof(c_blink[0])},  // blink
+    {c_brows, sizeof(c_brows) / sizeof(c_brows[0])},  // brows
+    {c_snarl, sizeof(c_snarl) / sizeof(c_snarl[0])},  // snarl
+};
+
 } // namespace rac1::poses

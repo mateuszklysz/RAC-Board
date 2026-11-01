@@ -26,6 +26,23 @@ for n in names:
     tz = t[1][2]
     out.append(f"constexpr KeyPose {n}{{k_{n}, sizeof(k_{n}) / sizeof(k_{n}[0]), {{{t[1][0]:.3f}f, {t[1][1]:.3f}f, {tz:.3f}f}}}};")
     out.append("")
+# The secondary-motion channels: each turn's axis in the joint's own frame (standing pose).
+rot, tr = r.local_pose(0, 0)
+G = r.globals(rot, tr)
+for n, turns in CHANNELS.items():
+    out.append(f"constexpr ChannelTurn c_{n}[] = {{")
+    for j, axis, deg in turns:
+        a = np.asarray(axis, float); a = a / np.linalg.norm(a)
+        loc = G[j][:3, :3].T @ a
+        out.append(f"    {{{j}, {{{loc[0]:.5f}f, {loc[1]:.5f}f, {loc[2]:.5f}f}}, {deg:.1f}f}},")
+    out.append("};")
+out.append("")
+out.append("// Channels, in the order of rac1::Channel.")
+out.append("constexpr Chan kChannels[] = {")
+for n in CHANNELS:
+    out.append(f"    {{c_{n}, sizeof(c_{n}) / sizeof(c_{n}[0])}},  // {n}")
+out.append("};")
+out.append("")
 out.append("} // namespace rac1::poses")
 open(sys.argv[2], 'w').write("\n".join(out) + "\n")
-print(names)
+print(names, list(CHANNELS))

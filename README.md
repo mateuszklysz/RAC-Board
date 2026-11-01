@@ -9,7 +9,9 @@ back while he rides, as Daxter stays on Jak's shoulder.
 
 Ratchet rides in his own animation, made for this mod in the style of Jak's: side-on stance with
 bent knees and arms out, leaning into turns, ducking, tucks and grabs in the air, kicks, and the
-whole body turning with the board in flips and spins. The animation lengths the logic times its
+whole body turning with the board in flips and spins. On top of the poses nothing holds still:
+his knees soak up bumps and landings, arms, ears and tail swing and trail behind, his head looks
+into turns, and his face reacts (mouth, brows, blinks). The animation lengths the logic times its
 tricks by are Jak II's (only the numbers, read from a disc).
 
 **Work in progress.** It needs OpenRAC with mod interface 1.12 (below).

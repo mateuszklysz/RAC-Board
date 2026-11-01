@@ -207,6 +207,7 @@ struct Ride {
     jak::StateId traced = jak::StateId::none;
     rac1::RideAnimator look;
     float last_yaw = 0.0f;
+    float last_vel[3] = {};
     bool has_yaw = false;
 };
 
@@ -496,9 +497,35 @@ void show_ride() {
         while (d < -3.14159265f) d += kTwoPi;
         rate = d / dt;
     }
+    // How the board moves, in his heading's frame, for the secondary motion.
+    rac1::Motion motion;
+    {
+        const float c = std::cos(yaw), s = std::sin(yaw);
+        const float* v = pose.velocity;
+        float acc[3] = {};
+        if (g_ride.has_yaw) {
+            for (int k = 0; k < 3; ++k) acc[k] = (v[k] - g_ride.last_vel[k]) / dt;
+        }
+        motion.speed = std::sqrt(v[0] * v[0] + v[1] * v[1]);
+        motion.accel_fwd = acc[0] * c + acc[1] * s;
+        motion.accel_side = -acc[0] * s + acc[1] * c;
+        motion.vz = v[2];
+        motion.az = acc[2];
+        motion.yaw_rate = rate;
+        const jak::StateId st = g_ride.rt->state;
+        motion.grounded = st == jak::StateId::target_board_stance ||
+                          st == jak::StateId::target_board_duck_stance ||
+                          st == jak::StateId::target_board_hit_ground ||
+                          st == jak::StateId::target_board_turn_to ||
+                          st == jak::StateId::target_board_ride_edge ||
+                          st == jak::StateId::target_board_start ||
+                          st == jak::StateId::target_board_get_on ||
+                          st == jak::StateId::target_board_get_off;
+        std::copy(v, v + 3, g_ride.last_vel);
+    }
     g_ride.last_yaw = yaw;
     g_ride.has_yaw = true;
-    g_ride.look.update(pick_look(rate), dt);
+    g_ride.look.update(pick_look(rate), motion, dt);
     const std::vector<rac1::JointOut> js = g_ride.look.joints(kPivot);
     std::vector<openrac_joint_offset> offsets(js.size());
     for (size_t i = 0; i < js.size(); ++i) {
