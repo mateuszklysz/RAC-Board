@@ -5,6 +5,7 @@
 // process, and target-board-physics' shock and the cushion, against numbers worked out from
 // target-board.gc with the same float operations.
 #include <algorithm>
+#include <cstdio>
 #include <string>
 
 #include "board/surfaces.hpp"
@@ -20,6 +21,22 @@ bool run_until(Target& t, fake::Io& io, StateId want, int max, uint16_t buttons 
         fake::frame(t, io, buttons);
     }
     return runtime(t).state == want;
+}
+// What the jump's checks read, printed when a jump does not start (a platform difference shows here).
+std::string dump(Target& t, const char* when) {
+    const ControlInfo& c = t.control;
+    char line[512];
+    std::snprintf(line, sizeof(line), "%s: state %d frame %lld status %llx y %.9g gspot %.9g transv.y %.9g last-on-surface %lld "
+                "surface %s flags %llx state-flags %llx angle %.9g rel %x %x %x pressed %d can-jump %d\n",
+                when, static_cast<int>(runtime(t).state), static_cast<long long>(t.clock.frame_counter),
+                static_cast<unsigned long long>(c.status), c.trans.y, c.gspot_pos.y, c.transv.y,
+                static_cast<long long>(c.last_time_on_surface),
+                c.current_surface && c.current_surface->name.name ? c.current_surface->name.name : "-",
+                c.current_surface ? static_cast<unsigned long long>(c.current_surface->flags) : 0ull,
+                static_cast<unsigned long long>(t.state_flags), c.surface_angle,
+                target_pad(t).history_rel[0], target_pad(t).history_rel[1], target_pad(t).history_rel[2],
+                target_recently_pressed(t, boardpad::x), can_jump_p(t, Symbol("board")));
+    return line;
 }
 bool played(const fake::Fx& fx, const char* name) {
     return std::find(fx.sounds.begin(), fx.sounds.end(), std::string(name)) != fx.sounds.end();
@@ -57,7 +74,11 @@ int main() {
 
     // ---- x: a jump (recently-pressed?, can-jump? 'board) ----
     fx.sounds.clear();
+    const std::string before = dump(t, "before x");
     fake::frame(t, io, pad::x);
+    if (rt.state != StateId::target_board_jump) {
+        std::printf("%s%s", before.c_str(), dump(t, "after x").c_str());
+    }
     CHECK(rt.state == StateId::target_board_jump);
     CHECK(played(fx, "board-jump"));
     CHECK(0.0f < t.control.transv.y);
