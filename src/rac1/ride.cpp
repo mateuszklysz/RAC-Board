@@ -1,0 +1,394 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Mateusz Kłysz
+#include "rac1/ride.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "board/board.hpp"
+#include "board/core.hpp"
+#include "board/runtime.hpp"
+#include "jak/collide.hpp"
+#include "jak/math.hpp"
+#include "jak/movement.hpp"
+#include "jak/target.hpp"
+#include "rac1/context.hpp"
+#include "rac1/convert.hpp"
+#include "rac1/effects.hpp"
+#include "rac1/hand.hpp"
+#include "rac1/interaction.hpp"
+#include "rac1/pad.hpp"
+#include "rac1/rails.hpp"
+#include "rac1/ride_pose.hpp"
+#include "rac1/world.hpp"
+
+namespace rac1 {
+
+namespace {
+
+constexpr float kPi = 3.14159265f;
+constexpr float kTwoPi = 6.2831853f;
+
+struct Ride {
+    std::unique_ptr<jak::Target> t;
+    std::unique_ptr<jak::BoardRuntime> rt;
+    uint32_t loads = 0; // play_status().loads as the ride started
+    jak::StateId traced = jak::StateId::none;
+    RideAnimator look;
+    float last_yaw = 0.0f;
+    float last_vel[3] = {};
+    bool has_yaw = false;
+};
+Ride g_ride;
+World g_world;
+int g_board_prop = -1;
+
+// What want-to-board? reads off a board-info that outlives the ride: the last frame on the board,
+// whether there was a ride yet, and the last frame Ratchet stood on the ground since.
+jak::TimeFrame g_board_time = 0;
+bool g_rode = false;
+jak::TimeFrame g_ground_time = 0;
+
+// ---- Ratchet's states (HeroStateId, Lombyte's rnc/hero/hero_state.h) as Jak II's focus ----
+bool hero_on_ground(int s) {
+    switch (s) {
+    case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x08: case 0x13: case 0x14: case 0x15:
+    case 0x17: case 0x1D: case 0x1E: case 0x1F: case 0x20: case 0x21: case 0x23: case 0x27: case 0x2E:
+    case 0x2F: case 0x30: case 0x31: case 0x32: case 0x40: case 0x41: case 0x59: case 0x5F: case 0x63:
+    case 0x72: case 0x73: case 0x79:
+        return true;
+    default:
+        return false;
+    }
+}
+bool hero_in_air(int s) {
+    return (s >= 0x06 && s <= 0x11 && s != 0x08) || s == 0x22 || s == 0x2D;
+}
+// The focus bits that keep Jak off the board (want-to-board?) for a state he cannot get on from.
+uint64_t hero_focus(int s) {
+    if (hero_on_ground(s) || hero_in_air(s) || s == 0x12 || (s >= 0x33 && s <= 0x37)) return 0; // water: water_flags
+    switch (s) {
+    case 0x16: case 0x3C: case 0x46: case 0x56: case 0x5D: case 0x75: case 0x76:
+        return jak::focus::hit;
+    case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x4A: case 0x4B: case 0x4C: case 0x4D: case 0x4E:
+        return jak::focus::edge_grab;
+    case 0x3E: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
+        return jak::focus::board; // the game's own hoverboard
+    case 0x3D: case 0x47: case 0x57: case 0x62: case 0x64: case 0x6A: case 0x77: case 0x7C: case 0x7D: case 0x7F:
+    case 0x80: case 0x82:
+        return jak::focus::dead;
+    default:
+        if (s >= 0x43 && s <= 0x62) return jak::focus::pilot; // Clank and Giant Clank
+        return jak::focus::grabbed; // grinds, swings, ladders, cranks, paths, scenes
+    }
+}
+
+// The camera's rotation for read-pad: forward from the game's camera to the hero, flat.
+jak::Mat camera_matrix(const float hero[3], float hero_yaw) {
+    float fx = std::cos(hero_yaw), fy = std::sin(hero_yaw);
+    float cam[3];
+    if (mod().camera_position(cam)) {
+        const float dx = hero[0] - cam[0], dy = hero[1] - cam[1];
+        const float len = std::sqrt(dx * dx + dy * dy);
+        if (len > 0.01f) {
+            fx = dx / len;
+            fy = dy / len;
+        }
+    }
+    // read-pad turns stick right into minus row 0 (Jak II's camera x points left), so row 0 is the
+    // game's left: up x forward, (-fy, fx, 0).
+    jak::Mat m;
+    jak::matrix_identity(m);
+    m.v[0] = jak::Vec{-fy, 0.0f, fx, 0.0f};
+    m.v[1] = jak::Vec{0.0f, 1.0f, 0.0f, 0.0f};
+    m.v[2] = jak::Vec{fx, 0.0f, fy, 0.0f};
+    return m;
+}
+
+void advance_clock(jak::Target& t) {
+    t.clock.old_frame_counter = ctx().clock;
+    t.clock.frame_counter = ctx().clock;
+    t.real_frame_counter += frame_ticks();
+    jak::update_rates(t, 1.0f);
+}
+
+// The board's spin (its main joint's twist) turns him with it; Jak's y turn is the game's z turn the
+// other way (the axes' mirror).
+float board_spin() {
+    const jak::BoardRuntime& rt = *g_ride.rt;
+    return rt.main.mode == jak::JointModMode::rotate ? -rt.main.twist_y * (kTwoPi / 65536.0f) : 0.0f;
+}
+
+// Turns `v` by the unit quaternion `q` (x, y, z, w).
+void qrot(const float q[4], const float v[3], float out[3]) {
+    // v + 2w (u x v) + 2 u x (u x v)
+    const float u[3] = {q[0], q[1], q[2]};
+    const float c1[3] = {u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]};
+    const float c2[3] = {u[1] * c1[2] - u[2] * c1[1], u[2] * c1[0] - u[0] * c1[2], u[0] * c1[1] - u[1] * c1[0]};
+    for (int k = 0; k < 3; ++k) out[k] = v[k] + 2.0f * (q[3] * c1[k] + c2[k]);
+}
+
+// How far the board is open (0 folded, 1 under his feet), from the frame of its own skeleton's
+// open or close animation.
+float board_open(const jak::BoardRuntime& rt) {
+    const jak::BoardProcess& b = rt.board_proc;
+    if (!b.alive || b.state == jak::BoardProcState::hidden) return 0.0f;
+    const jak::JointControl& jc = b.skel;
+    const int n = static_cast<int>(std::min<uint32_t>(jc.active_channels, jak::JointControl::kAllocated));
+    if (n <= 0) return 0.0f;
+    // The channel pushed last is the one playing; the one under it blends out in 0.1 s.
+    const jak::JointControlChannel& ch = jc.channel[n - 1];
+    const float last = static_cast<float>(jak::anim_info(ch.frame_group).num_frames - 1);
+    const float f = last > 0.0f ? std::clamp(ch.frame_num / last, 0.0f, 1.0f) : 1.0f;
+    if (ch.frame_group == jak::AnimId::board_open) return f;
+    if (ch.frame_group == jak::AnimId::board_close) return 1.0f - f;
+    return 0.0f;
+}
+
+bool grounded(jak::StateId st) {
+    using jak::StateId;
+    return st == StateId::target_board_stance || st == StateId::target_board_duck_stance ||
+           st == StateId::target_board_hit_ground || st == StateId::target_board_turn_to ||
+           st == StateId::target_board_ride_edge || st == StateId::target_board_start ||
+           st == StateId::target_board_get_on || st == StateId::target_board_get_off;
+}
+
+// Ratchet's body: his place and heading, held in his standing pose, the riding pose over it.
+void show_ratchet(openrac_pose& pose, float yaw) {
+    const jak::Target& t = *g_ride.t;
+    to_game_point(drawn_trans(t), pose.position);
+    pose.rotation[0] = 0.0f;
+    pose.rotation[1] = 0.0f;
+    pose.rotation[2] = yaw;
+    to_game_dir(t.control.transv, pose.velocity);
+    for (float& v : pose.velocity) v /= kUnit;
+    pose.seq = 0;
+    pose.frame = 0;
+    pose.anim_speed = 1.0f;
+    mod().hero_set_pose(pose);
+
+    const float dt = frame_seconds();
+    float rate = 0.0f;
+    if (g_ride.has_yaw) {
+        float d = yaw - g_ride.last_yaw;
+        while (d > kPi) d -= kTwoPi;
+        while (d < -kPi) d += kTwoPi;
+        rate = d / dt;
+    }
+    // How the board moves, in his heading's frame, for the secondary motion.
+    Motion motion;
+    const float c = std::cos(yaw), s = std::sin(yaw);
+    const float* v = pose.velocity;
+    float acc[3] = {};
+    if (g_ride.has_yaw) {
+        for (int k = 0; k < 3; ++k) acc[k] = (v[k] - g_ride.last_vel[k]) / dt;
+    }
+    motion.speed = std::sqrt(v[0] * v[0] + v[1] * v[1]);
+    motion.accel_fwd = acc[0] * c + acc[1] * s;
+    motion.accel_side = -acc[0] * s + acc[1] * c;
+    motion.vz = v[2];
+    motion.az = acc[2];
+    motion.yaw_rate = rate;
+    motion.grounded = grounded(g_ride.rt->state);
+    std::copy(v, v + 3, g_ride.last_vel);
+    g_ride.last_yaw = yaw;
+    g_ride.has_yaw = true;
+
+    // Ratchet's clips, mixed as the board's logic plays Jak's.
+    static MixPose mixed;
+    mix(g_ride.rt->skel, mixed);
+    const jak::BoardRuntime& rt = *g_ride.rt;
+    const float upper = rt.upper_body.mode == jak::JointModMode::rotate ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
+                                                                         : 0.0f;
+    g_ride.look.update(mixed, motion, board_spin(), upper, dt);
+    const std::vector<JointOut> js = g_ride.look.joints();
+    std::vector<openrac_joint_offset> offsets(js.size());
+    for (size_t i = 0; i < js.size(); ++i) {
+        offsets[i].joint = js[i].joint;
+        std::memcpy(offsets[i].rotation, js[i].q, sizeof js[i].q);
+        std::memcpy(offsets[i].translation, js[i].t, sizeof js[i].t);
+    }
+    mod().hero_set_joints(offsets);
+}
+
+// The board: where the clip has it (its turn and place in his model space: x his heading, y his
+// left, z up), turned with him by the spin, then into the game's axes. The mesh is y-up with its
+// nose on +z (tools/make_board.py); its x is mirrored so the matrix keeps its handedness (the board
+// is the same both sides).
+void show_board(const openrac_pose& pose, float yaw) {
+    const float scale = pose.scale > 0.0f ? pose.scale : 1.0f;
+    const float* p = pose.position;
+    const float f[3] = {std::cos(yaw), std::sin(yaw), 0.0f}, l[3] = {-std::sin(yaw), std::cos(yaw), 0.0f};
+    const float u[3] = {0.0f, 0.0f, 1.0f};
+    const float* bt = g_ride.look.pose().board;
+    const float bq[4] = {bt[kQx], bt[kQy], bt[kQz], bt[kQw]};
+    // The body turns by the conjugate of its root's spin (see RideAnimator::joints): so does the board.
+    const float hs = -0.5f * g_ride.look.spin();
+    const float sq[4] = {0.0f, 0.0f, std::sin(hs), std::cos(hs)};
+    // The board's open and close (Jak II's board-open / board-close on its own skeleton): it grows
+    // from folded as it opens, and folds back the same way.
+    constexpr float kFolded = 0.35f;
+    const float open = board_open(*g_ride.rt);
+    const float k = open * open * (3.0f - 2.0f * open);
+    const float size = kFolded + (1.0f - kFolded) * k;
+    const auto to_game = [&](const float v[3], float out[3]) {
+        float a[3];
+        qrot(sq, v, a);
+        for (int c = 0; c < 3; ++c) out[c] = a[0] * f[c] + a[1] * l[c] + a[2] * u[c];
+    };
+    const float nose_m[3] = {1.0f, 0.0f, 0.0f}, left_m[3] = {0.0f, 1.0f, 0.0f}, up_m[3] = {0.0f, 0.0f, 1.0f};
+    float nose[3], left[3], up[3], o[3];
+    qrot(bq, nose_m, o);
+    to_game(o, nose);
+    qrot(bq, left_m, o);
+    to_game(o, left);
+    qrot(bq, up_m, o);
+    to_game(o, up);
+    const float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
+    to_game(place, o);
+    const float mat[16] = {size * left[0], size * left[1], size * left[2], 0.0f,
+                           size * up[0],   size * up[1],   size * up[2],   0.0f,
+                           size * nose[0], size * nose[1], size * nose[2], 0.0f,
+                           p[0] + o[0],    p[1] + o[1],    p[2] + o[2],    1.0f};
+    if (g_board_prop < 0 || !mod().prop_pose(g_board_prop, mat)) {
+        // None yet, or gone with its level: a new one.
+        g_board_prop = mod().prop_create("assets/board.glb");
+        trace("board prop " + std::to_string(g_board_prop));
+        if (g_board_prop >= 0) mod().prop_pose(g_board_prop, mat);
+    }
+    if (g_board_prop >= 0) mod().prop_hide(g_board_prop, false);
+}
+
+} // namespace
+
+bool riding() { return g_ride.t != nullptr; }
+
+bool ride_level_changed() { return riding() && mod().play_status().loads != g_ride.loads; }
+
+void note_on_foot() {
+    openrac_pose pose{};
+    if (mod().hero_pose(pose) && hero_on_ground(pose.state)) g_ground_time = ctx().clock;
+}
+
+bool try_start_ride() {
+    openrac_pose pose{};
+    if (!playing() || !mod().hero_pose(pose)) return false;
+    auto t = std::make_unique<jak::Target>();
+    auto rt = std::make_unique<jak::BoardRuntime>();
+    t->world = &g_world;
+    t->effects = &effects();
+    t->display_time_factor = ctx().pal ? 6.0f : 5.0f;
+    t->clock.frame_counter = ctx().clock;
+    jak::movement_init(*t, to_jak_point(pose.position));
+    jak::target_collide_init(*t);
+    t->control.local_normal = jak::Vec{0.0f, 1.0f, 0.0f, 1.0f};
+    t->control.gspot_normal = jak::Vec{0.0f, 1.0f, 0.0f, 1.0f};
+    jak::update_rates(*t, 1.0f);
+    Interaction& io = interaction();
+    io.target = t.get();
+    io.hero_state = pose.state;
+    io.left = false;
+    jak::attach(*t, *rt, io);
+
+    // want-to-board?, with what Ratchet is doing as Jak's focus and the board-info kept between rides.
+    t->focus_status |= hero_focus(pose.state);
+    t->control.list_time_on_ground = g_ground_time;
+    t->board->board_time = g_board_time;
+    rt->board_setup = g_rode;
+    feed_pad(*t, true);
+    const bool ok = jak::want_to_board_p(*t);
+    rt->board_setup = false; // target-board-setup's own first time, as each ride makes a new target
+    if (!ok) {
+        trace("no board in hero state " + std::to_string(pose.state));
+        io.target = nullptr;
+        return false;
+    }
+    t->focus_status &= ~(jak::focus::hit | jak::focus::edge_grab | jak::focus::grabbed | jak::focus::dead);
+
+    jak::Quat q;
+    jak::forward_up_nopitch_to_quaternion(q, yaw_to_jak_forward(pose.rotation[2]), jak::Vec{0, 1, 0, 0});
+    t->control.quat = q;
+    jak::set_quaternion(*t, q);
+    jak::rot_to_dir_targ(*t);
+    const jak::Vec v = to_jak_dir(pose.velocity);
+    t->control.transv = jak::Vec{v.x * kUnit, v.y * kUnit, v.z * kUnit, 0.0f};
+    // Jak walks onto the board with his ground already found; get-on's hop is timed from it.
+    jak::CollideQuery cq;
+    if (jak::find_ground(*t, cq, jak::root_prim_collide_with(*t) & ~jak::cspec::water, 8192.0f, 81920.0f, 1024.0f)) {
+        t->control.gspot_pat_surfce = cq.best_pat;
+    }
+
+    find_hand(pose.position);
+    if (settings().trace && mod().has_world()) {
+        for (const openrac_moby& m : mod().moby_list()) {
+            if (!(m.flags & OPENRAC_MOBY_CREATURE)) continue;
+            trace("creature " + std::to_string(m.slot) + " class " + std::to_string(m.oclass) + " at " +
+                  std::to_string(m.position[0]) + "," + std::to_string(m.position[1]) + "," +
+                  std::to_string(m.position[2]));
+        }
+    }
+    trace_rails();
+    g_ride.t = std::move(t);
+    g_ride.rt = std::move(rt);
+    g_ride.loads = mod().play_status().loads;
+    g_ride.traced = jak::StateId::none;
+    g_rode = true;
+    jak::go(*g_ride.t, jak::StateId::target_board_start);
+    return true;
+}
+
+bool tick_ride(bool toggle) {
+    jak::Target& t = *g_ride.t;
+    advance_clock(t);
+    float hero[3];
+    to_game_point(t.control.trans, hero);
+    jak::Vec fwd;
+    jak::vector_z_quaternion(fwd, t.control.quat);
+    t.camera_local_to_world = camera_matrix(hero, jak_forward_to_yaw(fwd));
+    feed_pad(t, toggle);
+
+    deliver_hit(t);
+    if (mod().has_world()) touch_creatures(t);
+    jak::board_tick(t);
+
+    if (g_ride.rt->state != g_ride.traced) {
+        g_ride.traced = g_ride.rt->state;
+        trace(std::string("state ") + jak::state_name(g_ride.traced) + " height " +
+              std::to_string(t.control.trans.y / kUnit));
+    }
+    return !interaction().left;
+}
+
+void show_ride() {
+    const jak::Target& t = *g_ride.t;
+    openrac_pose pose{};
+    mod().hero_pose(pose);
+    jak::Vec fwd;
+    jak::vector_z_quaternion(fwd, t.control.quat);
+    const float yaw = jak_forward_to_yaw(fwd);
+    effects().yaw = yaw;
+    show_ratchet(pose, yaw);
+    show_board(pose, yaw);
+    hide_hand(true);
+}
+
+void end_ride() {
+    if (!riding()) return;
+    g_board_time = g_ride.t->board->board_time;
+    mod().hero_set_joints({});
+    release_hand();
+    g_ride.look.reset();
+    g_ride.has_yaw = false;
+    effects().stop_sounds();
+    if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
+    interaction().target = nullptr;
+    interaction().left = false;
+    g_ride.t.reset();
+    g_ride.rt.reset();
+}
+
+} // namespace rac1

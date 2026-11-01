@@ -518,4 +518,50 @@ Surface smack_mods = [] {
     return s;
 }();
 
+// *smack-up-mods* (target-death.gc): *smack-mods* that turns to the pad.
+Surface smack_up_mods = [] {
+    Surface s = smack_mods;
+    s.turnv = 131072.0f;
+    s.turnvv = 32768.0f;
+    s.turnvf = 30.0f;
+    s.turnvvf = 30.0f;
+    s.flags = sflag::no_turn_around | sflag::turn_to_pad | sflag::air | sflag::gun_inactive | sflag::gun_no_twist;
+    return s;
+}();
+
+// *forward-high-jump-mods* (surface-h.gc)
+Surface forward_high_jump_mods = [] {
+    Surface s{};
+    s.name = Symbol("high-jump");
+    s.turnv = 131072.0f;
+    s.turnvv = 65536.0f;
+    s.tiltv = 32768.0f;
+    s.tiltvv = 262144.0f;
+    s.transv_max = 45056.0f;
+    s.target_speed = 45056.0f;
+    s.seek0 = 0.9f;
+    s.seek90 = 0.9f;
+    s.seek180 = 0.9f;
+    s.fric = 0.3f;
+    s.nonlin_fric_dist = 1.0f;
+    s.slip_factor = 1.0f;
+    s.slide_factor = 1.0f;
+    s.slope_up_factor = 1.0f;
+    s.slope_down_factor = 1.0f;
+    s.slope_slip_angle = 1.0f;
+    s.impact_fric = 1.0f;
+    s.bend_factor = 1.0f;
+    s.bend_speed = 1.0f;
+    s.alignv = 1.0f;
+    s.slope_up_traction = 1.0f;
+    s.align_speed = 1.0f;
+    s.turnvf = 30.0f;
+    s.turnvvf = 30.0f;
+    s.tiltvf = 150.0f;
+    s.tiltvvf = 15.0f;
+    s.mode = Symbol("air");
+    s.flags = sflag::check_edge | sflag::air;
+    return s;
+}();
+
 } // namespace jak

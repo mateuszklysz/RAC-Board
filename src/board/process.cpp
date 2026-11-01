@@ -27,7 +27,7 @@ const char* const kStateNames[] = {
     "target-board-grenade", "target-board-get-on", "target-board-pegasus", "target-board-get-off",
     "target-board-grab", "target-board-clone-anim", "target-board-hit",
     "target-falling", "target-hit-ground", "target-jump", "target-stance", "target-grab",
-    "target-death", "target-hit",
+    "target-death", "target-hit", "target-attack-air", "target-flop",
 };
 static_assert(sizeof(kStateNames) / sizeof(kStateNames[0]) == static_cast<int>(StateId::count),
               "one name per state");
@@ -109,7 +109,7 @@ const char* state_name(StateId id) { return kStateNames[static_cast<int>(id)]; }
 namespace {
 // The collision code's send-event to the target (collide.hpp, Target::collide_event), as the board's
 // event: the target sends it itself, from the thread it runs in. Its attack-info is the static one
-// the reaction builds; the mask bits beyond the vector are the adapter's (attack_info_combine).
+// the reaction builds (static-attack-info), its mask naming the fields it sets.
 bool board_collide_event(Target& self, const CollideEvent& ev) {
     EventMessage e;
     e.message = Symbol(ev.message ? ev.message : "");
@@ -119,19 +119,31 @@ bool board_collide_event(Target& self, const CollideEvent& ev) {
         e.num_params = 1;
     }
     if (ev.has_attack) {
-        info.mode = Symbol(ev.mode ? ev.mode : "");
+        info.id = ev.id;
+        info.mask |= attack_mask::id;
+        if (ev.mode) {
+            info.mode = Symbol(ev.mode);
+            info.mask |= attack_mask::mode;
+        }
+        if (ev.test) {
+            info.test = true;
+            info.mask |= attack_mask::test;
+        }
         if (ev.has_vector) {
-            info.mask |= kAttackMaskVector;
+            info.mask |= attack_mask::vector;
             info.vector = ev.vector;
         }
         if (ev.has_shove_up) {
             info.shove_up = ev.shove_up;
+            info.mask |= attack_mask::shove_up;
         }
         if (ev.angle) {
             info.angle = Symbol(ev.angle);
+            info.mask |= attack_mask::angle;
         }
         if (ev.has_control) {
             info.control = ev.control;
+            info.mask |= attack_mask::control;
         }
         e.attack = &info;
         e.num_params = 2;

@@ -40,7 +40,7 @@ enum class StateId : uint8_t {
     target_board_hit,
     // The target's states off the board (the adapter's): go hands over to Interaction.
     target_falling, target_hit_ground, target_jump, target_stance, target_grab, target_death,
-    target_hit,
+    target_hit, target_attack_air, target_flop,
     count
 };
 const char* state_name(StateId id);
@@ -176,6 +176,9 @@ struct BoardRuntime {
     bool board_setup = false;        // board-info allocated (target-board-setup's (zero? board))
     bool part_control = false;       // (-> self board part-control) created
     TimeFrame shock_effect_time = 0;
+    AttackInfo attack_info;          // (-> self attack-info): the hit being taken
+    AttackInfo attack_info_rec;      // (-> self attack-info-rec): the hit as it came
+    AttackInfo attack_info_old[8];   // (-> self attack-info-old): target-log-attack's last hits
     BoardProcess board_proc;         // (-> self board board), the board's own process
     BoardTrickTracker trick_tracker; // *board-trick-tracker*
 };

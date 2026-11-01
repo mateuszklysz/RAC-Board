@@ -87,7 +87,7 @@ EdgeGrabInfo g_edge_grab_info_host;
 // (mem-copy! (-> *collide-edge-work* spec) spec 320): the spec in GOAL's layout. The touching
 // segment, when there is one, is copied next to it in the arena.
 void copy_spec_in(CollideEdgeSpecGoal& g, const CollideEdgeSpec& s) {
-    std::memset(&g, 0, sizeof(g));
+    g = CollideEdgeSpecGoal{};
     g.split_dists[0] = s.split_dists[0];
     g.split_dists[1] = s.split_dists[1];
     g.outward_offset = s.outward_offset;

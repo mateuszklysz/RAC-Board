@@ -54,25 +54,6 @@ struct Io : Interaction {
     bool send_board_attack(Handle, const void*, uint32_t, uint64_t) override { return false; }
     Symbol standard_event_handler(Target&, const EventMessage&) override { return Symbol(); }
     Symbol generic_event_handler(Target&, const EventMessage&) override { return Symbol(); }
-    Symbol target_attacked(Target& self, Symbol, const AttackInfo& a, Handle, const void*, StateId hit) override {
-        StateArgs s;
-        s.sym = Symbol("attack");
-        s.attack = &a;
-        go(self, hit, s);
-        return Symbol("#t");
-    }
-    AttackInfo* attack_info_rec() override { return &rec; }
-    AttackInfo* attack_info() override { return &info; }
-    void attack_info_combine(AttackInfo& d, const AttackInfo& s) override {
-        if (s.mask & kAttackMaskVector) {
-            d.vector = s.vector;
-            d.mask |= kAttackMaskVector;
-        }
-        if (s.mode) d.mode = s.mode;
-    }
-    void target_hit_effect(const AttackInfo&) override {}
-    bool target_hit_orient(const AttackInfo&, const Vec&) override { return false; }
-    Symbol target_hit_push(Vec&, const Mat&, float, float, const AttackInfo&) override { return Symbol(); }
     void go_target_state(Target&, StateId s, const StateArgs&) override { off_board.push_back(s); }
 };
 

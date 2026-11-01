@@ -20,24 +20,42 @@ enum class StateId : uint8_t;
 // A process as GOAL's handle: 0 is #f.
 using Handle = uint64_t;
 
-// attack-info (game-h.gc), the fields the board's hit code reads and writes.
+// attack-mask (game-h.gc): which fields of an attack-info are set.
+namespace attack_mask {
+constexpr uint32_t trans = 1u << 0, vector = 1u << 1, intersection = 1u << 2, attacker = 1u << 3,
+                   attack_time = 1u << 4, invinc_time = 1u << 5, mode = 1u << 6, shove_back = 1u << 7,
+                   shove_up = 1u << 8, speed = 1u << 9, dist = 1u << 10, control = 1u << 11,
+                   angle = 1u << 12, rotate_to = 1u << 13, prev_state = 1u << 14, id = 1u << 15,
+                   count = 1u << 16, penetrate_using = 1u << 17, attacker_velocity = 1u << 18,
+                   damage = 1u << 19, shield_damage = 1u << 20, knock = 1u << 21, test = 1u << 22;
+}
+
+// attack-info (game-h.gc).
 struct AttackInfo {
-    uint32_t mask = 0;  // attack-mask bits: vector 1<<1? see kAttackMask*
+    Vec trans;
+    Vec vector;
+    Vec attacker_velocity;
+    Vec intersection;
     Handle attacker = 0;
+    TimeFrame attack_time = 0;
+    TimeFrame invinc_time = 0;
+    uint32_t mask = 0;  // attack_mask bits
     Symbol mode{};
     float shove_back = 0.0f;
     float shove_up = 0.0f;
-    Symbol angle{};
-    Vec trans;
-    Vec vector;
-    float control = 0.0f;
-    TimeFrame invinc_time = 0;
     float speed = 0.0f;
+    float dist = 0.0f;
+    float control = 0.0f;
+    Symbol angle{};
+    float rotate_to = 0.0f;
+    uint32_t id = 0;
+    uint32_t count = 0;
+    uint64_t penetrate_using = 0;
     float damage = 0.0f;
+    float shield_damage = 0.0f;
     int knock = 0;  // knocked-type
+    bool test = false;
 };
-// attack-mask bits (game-h.gc) the board tests.
-constexpr uint32_t kAttackMaskVector = 1u << 2, kAttackMaskAttacker = 1u << 8;
 
 // An event as send-event delivers it (event-message-block): the message and its parameters, typed
 // by what the board's handlers read from them.
@@ -116,22 +134,10 @@ class Interaction {
     // target-standard-event-handler / target-generic-event-handler (target-handler.gc).
     virtual Symbol standard_event_handler(Target& self, const EventMessage& e) = 0;
     virtual Symbol generic_event_handler(Target& self, const EventMessage& e) = 0;
-    // target-attacked (target-handler.gc): decides on the hit and makes the target go to
-    // `hit_state` ('attack attack-info) through board::go when it does; its reply.
-    virtual Symbol target_attacked(Target& self, Symbol message, const AttackInfo& info, Handle from,
-                                   const void* touching, StateId hit_state) = 0;
-    // The attack-info-rec copy the 'shove event makes (mem-copy! then the attacker), returned.
-    virtual AttackInfo* attack_info_rec() = 0;
-    virtual AttackInfo* attack_info() = 0;        // (-> self attack-info)
-    // combine! (game-h.gc) of attack-info, and target-hit-effect, target-hit-orient and
-    // target-hit-push (target-death.gc).
-    virtual void attack_info_combine(AttackInfo& dst, const AttackInfo& src) = 0;
-    virtual void target_hit_effect(const AttackInfo& info) = 0;
-    virtual bool target_hit_orient(const AttackInfo& info, const Vec& dir) = 0;
-    // target-hit-push: the symbol it returns (#f, #t or 'stuck).
-    virtual Symbol target_hit_push(Vec& start, const Mat& rot, float dist, float speed,
-                                   const AttackInfo& info) = 0;
-    virtual void shock_effect() {}  // the 'shock modes' lightning in target-board-hit's post
+    // (-> (handle->process h) root trans): where a process is, false for none (combine!).
+    virtual bool process_trans(Handle, Vec&) { return false; }
+    virtual void shock_effect() {}  // the 'shock modes' lightning (process-drawable-shock-effect)
+    virtual void burn_effect() {}   // process-drawable-burn-effect, for a burn or lava hit
 
     // ---- the target's states off the board ----
     // The board's code leaves to one of the target's own states (target-falling, target-hit-ground,

@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Mateusz Kłysz
+//
+// RAC-Board in Ratchet & Clank: the mod's entry. While Ratchet rides, the mod takes his update
+// (rac1.player.update) and runs one frame of Jak II's target on the board (src/jak and src/board,
+// ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
+//
+// The adapter's parts (src/rac1):
+//   context   settings, the board's clock, the mod's API
+//   pad       the pad as Jak II reads it, the board's button
+//   world     the level's collision for the board
+//   effects   sounds, particles (board_fx) and the trick combo line
+//   interaction  health, hits on Ratchet, attacks on creatures
+//   hand      the held item, hidden while riding
+//   ride      getting on and off, each frame, Ratchet's pose (ride_pose) and the board
+//   convert   units and axes between the two games
+#include "openrac/games/rac1.hpp"
+#include "rac1/context.hpp"
+#include "rac1/effects.hpp"
+#include "rac1/interaction.hpp"
+#include "rac1/pad.hpp"
+#include "rac1/ride.hpp"
+
+namespace {
+
+using namespace rac1;
+
+// rac1.player.update: the board's frame while riding, the game's otherwise.
+void hero_update(const openrac::Original<void()>& original) {
+    ctx().clock += frame_ticks();
+    bool toggle = toggle_pressed();
+    if (ride_level_changed()) {
+        end_ride();
+        effects().clear_particles();
+    }
+    // The board's particles live on after he gets off, until they fade.
+    effects().update();
+    if (!riding()) {
+        if (!(toggle && try_start_ride())) {
+            note_on_foot();
+            original();
+            return;
+        }
+        toggle = false; // the press that got on is not also the one that gets off
+    }
+    const bool on = tick_ride(toggle);
+    show_ride();
+    if (!on) {
+        // Off the board: the game's update goes on from where the board left Ratchet.
+        end_ride();
+        original();
+    }
+}
+
+int load(openrac::Mod& m) {
+    if (m.game() != "rac1" || (m.version() != "pal" && m.version() != "ntsc")) {
+        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs only");
+        return 1;
+    }
+    if (!m.has_api_12()) {
+        m.fail("RAC-Board needs OpenRAC's mod interface 1.12 (update OpenRAC)");
+        return 1;
+    }
+    ctx().mod = &m;
+    ctx().pal = m.version() == "pal";
+    load_settings(m);
+    if (m.has_world()) m.on_moby_hit(on_moby_hit);
+    m.on_pad(on_pad);
+    m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
+    m.info("RAC-Board ready");
+    return 0;
+}
+
+} // namespace
+
+OPENRAC_MOD_CPP("rac-board", "0.1.0", load)

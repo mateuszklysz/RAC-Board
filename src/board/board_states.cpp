@@ -13,6 +13,7 @@
 
 #include "board/anim.hpp"
 #include "board/board.hpp"
+#include "board/target_hit.hpp"
 #include "board/collide.hpp"
 #include "board/core.hpp"
 #include "board/surfaces.hpp"
@@ -1703,7 +1704,7 @@ void grenade_code(Target& self, Co& co, const StateArgs& args) {
 Symbol get_on_event(Target& self, const EventMessage& e) {
     if (e.message == Symbol("attack") || e.message == Symbol("attack-or-shove") ||
         e.message == Symbol("attack-invinc")) {
-        return io(self).target_attacked(self, e.message, *e.attack, e.from, e.touching, StateId::target_hit);
+        return target_attacked(self, e.message, *e.attack, e.from, StateId::target_hit);
     }
     return io(self).generic_event_handler(self, e);
 }
@@ -2144,7 +2145,7 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
     self.focus_status &= ~focus::halfpipe;
     set_time(self, self.state_time);
     {
-        AttackInfo& gp = *ia.attack_info();
+        AttackInfo& gp = runtime(self).attack_info;
         gp.attacker = 0;
         gp.mode = Symbol("generic");
         gp.shove_back = 6144.0f;
@@ -2162,9 +2163,9 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
             gp.angle = Symbol("shove");
         }
         if (args.attack) {
-            ia.attack_info_combine(gp, *args.attack);
+            attack_info_combine(self, gp, *args.attack);
         }
-        if (!(gp.mask & kAttackMaskVector)) {
+        if (!(gp.mask & attack_mask::vector)) {
             vector_z_quaternion(gp.vector, c.quat_for_control);
             vector_xz_normalize(gp.vector, -std::fabs(gp.shove_back));
             gp.vector.y = gp.shove_up;
@@ -2192,7 +2193,7 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
                 } else {
                     ia.pickup_health(-1000.0f);
                     StateArgs a;
-                    a.sym = ia.attack_info()->mode;
+                    a.sym = runtime(self).attack_info.mode;
                     go(self, StateId::target_death, a);
                 }
             } else if (m == Symbol("drown-death") || m == Symbol("sharkey") || m == Symbol("lava") ||
@@ -2209,7 +2210,7 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
                 // (('death) ...) after the list that already has 'death: never reached.
                 ia.pickup_health(-gp.damage);
             }
-            ia.target_hit_effect(*ia.attack_info());
+            target_hit_effect(self, runtime(self).attack_info);
         } else {
             if (gp.mode == Symbol("burn") || gp.mode == Symbol("burnup")) {
                 sound_play(self, "get-burned");
@@ -2217,7 +2218,7 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
         }
     }
     {
-        AttackInfo& gp = *ia.attack_info();
+        AttackInfo& gp = runtime(self).attack_info;
         if (!(ia.game_mode() == Symbol("play") && 0.0f >= ia.health())) {
             if (gp.knock == 8) {
                 set_quaternion(self, c.dir_targ);
@@ -2243,10 +2244,10 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
                 }
             }
         }
-        co.b[0] = ia.target_hit_orient(gp, co.v[0]);
+        co.b[0] = target_hit_orient(self, gp, co.v[0]);
         // ---- target-hit-move gp-0, arg1 co.b[0], arg2 target-board-falling-anim-trans, arg3 speed ----
         vector_identity(c.transv);
-        set_vertical(self, [&] { return 2048.0f + std::sqrt(491520.0f * ia.attack_info()->shove_up); });
+        set_vertical(self, [&] { return 2048.0f + std::sqrt(491520.0f * runtime(self).attack_info.shove_up); });
         co.v[1] = c.trans;
         matrix_rotate_y(co.m, 32768.0f + vector_y_angle(gp.vector));
         co.f[0] = 0.0f;
@@ -2260,9 +2261,9 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
     }
     do {
         {
-            AttackInfo& gp = *ia.attack_info();
+            AttackInfo& gp = runtime(self).attack_info;
             co.f[0] = co.f[0] + gp.shove_back * co.f[1] * spf(self);
-            co.s = ia.target_hit_push(co.v[1], co.m, co.f[0], gp.shove_back * co.f[1], gp);
+            co.s = target_hit_push(self, co.v[1], co.m, co.f[0], gp.shove_back * co.f[1], gp);
         }
         CO_SUSPEND(co);
         ja(self, Ja().seek());
@@ -2270,9 +2271,9 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
     while ((!(c.status & cstat::on_surface) || co.s) && co.s != Symbol("stuck")) {
         target_board_falling_anim_trans(self);
         {
-            AttackInfo& gp = *ia.attack_info();
+            AttackInfo& gp = runtime(self).attack_info;
             co.f[0] = co.f[0] + gp.shove_back * co.f[1] * spf(self);
-            co.s = ia.target_hit_push(co.v[1], co.m, co.f[0], gp.shove_back * co.f[1], gp);
+            co.s = target_hit_push(self, co.v[1], co.m, co.f[0], gp.shove_back * co.f[1], gp);
         }
         if (!co.s) {
             self.focus_status &= ~focus::hit;
@@ -2291,7 +2292,7 @@ void hit_code(Target& self, Co& co, const StateArgs& args) {
     }
     if (ia.game_mode() == Symbol("play") && 0.0f >= ia.health()) {
         StateArgs a;
-        a.sym = ia.attack_info()->mode;
+        a.sym = runtime(self).attack_info.mode;
         go(self, StateId::target_death, a);
     }
     // enter-state: a bare symbol in the GOAL source, nothing.
@@ -2307,7 +2308,7 @@ void hit_post(Target& self) {
     vector_float_mul(c.dynam->gravity, c.dynam->gravity_normal, c.dynam->gravity_length);
     target_post(self);
     target_board_effect(self);
-    const Symbol m = rt.io->attack_info()->mode;
+    const Symbol m = rt.attack_info.mode;
     if (m == Symbol("shock") || m == Symbol("shock-red") || m == Symbol("shockup")) {
         const TimeFrame now = rt.io->game_clock_frame_counter();
         if (now - rt.shock_effect_time >= seconds(0.03)) {
@@ -2366,6 +2367,8 @@ const StateDef& state_def(StateId id) {
         {StateId::target_grab, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
         {StateId::target_death, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
         {StateId::target_hit, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
+        {StateId::target_attack_air, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
+        {StateId::target_flop, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
     };
     static_assert(sizeof(kDefs) / sizeof(kDefs[0]) == static_cast<size_t>(StateId::count), "one per state");
     return kDefs[static_cast<size_t>(id)];

@@ -14,6 +14,7 @@
 #include "board/collide.hpp"
 #include "board/core.hpp"
 #include "board/surfaces.hpp"
+#include "board/target_hit.hpp"
 #include "jak/math.hpp"
 #include "jak/math_board.hpp"
 #include "jak/math_core.hpp"
@@ -193,15 +194,15 @@ Symbol target_board_handler(Target& self, const EventMessage& e) {
         return v0 ? kTrue : Symbol();
     }
     if (m == Symbol("attack") || m == Symbol("attack-or-shove") || m == Symbol("attack-invinc")) {
-        return rt.io->target_attacked(self, m, *e.attack, e.from, e.touching, StateId::target_board_hit);
+        return target_attacked(self, m, *e.attack, e.from, StateId::target_board_hit);
     }
     if (m == Symbol("shove")) {
         if (!focus_test(self, focus::hit)) {
-            AttackInfo* rec = rt.io->attack_info_rec();
+            AttackInfo* rec = &rt.attack_info_rec;
             *rec = *e.attack;
-            if (!(rec->mask & kAttackMaskAttacker)) {
+            if (!(rec->mask & attack_mask::attacker)) {
                 rec->attacker = e.from;
-                rec->mask |= kAttackMaskAttacker;
+                rec->mask |= attack_mask::attacker;
             }
             StateArgs a;
             a.sym = Symbol("shove");

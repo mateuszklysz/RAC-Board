@@ -43,6 +43,8 @@ extern Surface empty_mods;   // *empty-mods*
 extern Surface neutral_mods; // *neutral-mods*
 extern Surface grab_mods;    // *grab-mods*: *walk-mods* named grab, no flags
 extern Surface smack_mods;   // *smack-mods* (target-death.gc), the air surface of a knock-back
+extern Surface smack_up_mods; // *smack-up-mods* (target-death.gc), a knock-back up
+extern Surface forward_high_jump_mods; // *forward-high-jump-mods*
 
 // The ground surfaces (surface-h.gc; *no-walk-surface* is in collide-edge-grab.gc). The collision
 // (collide-shape.gc) points `control.surf` at one of them from the ground's material.
