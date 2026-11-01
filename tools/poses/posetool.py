@@ -176,6 +176,8 @@ class Rig:
                 X, Y, D = T[..., 0], T[..., 2], -T[..., 1]
             elif view == "front":
                 X, Y, D = -T[..., 1], T[..., 2], T[..., 0]
+            elif view == "back":
+                X, Y, D = T[..., 1], T[..., 2], -T[..., 0]
             else:  # three-quarter
                 c, s = math.cos(math.radians(35)), math.sin(math.radians(35))
                 X, Y, D = T[..., 0]*c - T[..., 1]*s, T[..., 2], -(T[..., 0]*s + T[..., 1]*c)
@@ -189,7 +191,7 @@ class Rig:
                 nn = np.linalg.norm(n[t]) or 1
                 if view == "side":
                     l = abs(-n[t][1])/nn
-                elif view == "front":
+                elif view in ("front", "back"):
                     l = abs(n[t][0])/nn
                 else:
                     l = abs(n[t][0]*s + n[t][1]*c)/nn

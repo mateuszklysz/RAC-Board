@@ -14,7 +14,7 @@ curve through its keys (Catmull-Rom), sampled at each frame; looped clips wrap.
 """
 import math, sys, numpy as np
 from posetool import *
-from poses import CHANNELS, POSES, Z, X, Y, F, L, YAW, add
+from poses import CHANNELS, POSES, Z, X, Y, YAW, add, rz
 
 FRAMES = {}  # name -> number of frames, read from anim_table.cpp
 
@@ -27,7 +27,7 @@ def read_frames(path):
 
 # ---- the pose: every parameter has a default; a key sets some of them ----
 DEFAULT = dict(
-    crouch=1.0, crouch_f=0.0, crouch_b=0.0, lean=0.0, hip_tip=8.0, chest_tip=6.0, head=-10.0, twist=30.0,
+    crouch=1.0, crouch_f=0.0, crouch_b=0.0, lean=0.0, hip_tip=3.0, chest_tip=3.0, head=-10.0, twist=30.0,
     head_turn=10.0, tilt=0.0, sway=0.0,
     l_out=55.0, l_fwd=15.0, l_elbow=10.0, r_out=55.0, r_fwd=15.0, r_elbow=10.0,
     lift=0.0,  # feet (and the board) up towards the hips, model units
@@ -48,6 +48,9 @@ def pose(p):
     """World turns per joint (model space over his standing pose) and the hips' move."""
     w = {}
     c = p['crouch']
+    # his chest's forward and left after the hips' turn: the limbs bend about these, so they stay
+    # his own while the turn goes from facing ahead (get-on, get-off) to side-on
+    F = rz(p['yaw'], X); L = rz(p['yaw'], Y)
     add(w, 1, (Z, p['yaw']), (L, p['hip_tip']), (X, p['lean']))
     add(w, 2, (Z, p['twist'] * 0.4), (X, p['sway']))
     add(w, 4, (Z, p['twist'] * 0.6), (L, p['chest_tip']), (X, -0.5 * p['lean']))
@@ -232,6 +235,45 @@ clip('jakb-board-hit-get-off', [
 ])
 
 
+# Flips: the whole body turns over the clip (flip, degrees) as Jak's flip clips turn him. Forward:
+# arms swing up and over, a tight tuck holding the knees, then open to land. Backward: head and
+# arms thrown back, the tuck, then open.
+def flip_keys(n, sign, keys):
+    return [(f, merge(d, dict(flip=sign * 360.0 * f / (n - 1)))) for f, d in keys]
+
+
+TIGHT = dict(crouch=2.2, hip_tip=28, chest_tip=24, head=-28, l_out=25, r_out=25, l_fwd=70, r_fwd=70, l_elbow=75,
+             r_elbow=75, lift=0.75, jaw=0.2, brows=0.6, ear_l_back=0.9, ear_r_back=0.9, tail_up=-0.3, twist=10)
+clip('jakb-board-flip-forward', flip_keys(11, 1, [
+    (0, dict(crouch=1.3, hip_tip=14, chest_tip=10, head=-12, l_out=60, r_out=55, l_fwd=60, r_fwd=55, l_elbow=20,
+             r_elbow=20, lift=0.3, jaw=0.4, ear_l_up=0.6, ear_r_up=0.5)),
+    (3, TIGHT),
+    (7, merge(TIGHT, dict(crouch=2.3, head=-32))),
+    (10, dict(crouch=1.3, hip_tip=8, chest_tip=4, head=-8, l_out=95, r_out=90, l_fwd=10, r_fwd=10, l_elbow=20,
+              r_elbow=20, lift=0.3, jaw=0.3, brows=0.8, ear_l_up=0.5, ear_r_up=0.4)),
+]))
+clip('jakb-board-flip-forward-loop', flip_keys(7, 1, [(0, TIGHT), (3, merge(TIGHT, dict(crouch=2.35))), (6, TIGHT)]))
+clip('jakb-board-flip-backward', flip_keys(11, -1, [
+    (0, dict(crouch=0.9, hip_tip=-6, chest_tip=-16, head=18, l_out=120, r_out=115, l_fwd=-40, r_fwd=-35,
+             l_elbow=15, r_elbow=15, lift=0.3, jaw=0.6, brows=1.0, ear_l_up=0.8, ear_r_up=0.7, tail_up=0.8)),
+    (3, merge(TIGHT, dict(head=-10, hip_tip=18))),
+    (7, merge(TIGHT, dict(head=-14, hip_tip=20))),
+    (10, dict(crouch=1.3, hip_tip=6, chest_tip=2, head=-6, l_out=95, r_out=90, l_fwd=0, r_fwd=0, l_elbow=20,
+              r_elbow=20, lift=0.3, jaw=0.3, brows=0.8, ear_l_up=0.4, ear_r_up=0.4)),
+]))
+clip('jakb-board-flip-backward-loop', flip_keys(7, -1, [(0, merge(TIGHT, dict(head=-12))),
+                                                        (3, merge(TIGHT, dict(head=-14, crouch=2.35))),
+                                                        (6, merge(TIGHT, dict(head=-12)))]))
+# The spin (the board's twist turns him): wound up, arms flung out and round, back into a crouch.
+clip('jakb-board-spin', [
+    (0, dict(crouch=1.5, twist=-25, head_turn=-15, l_out=40, r_out=80, l_fwd=40, r_fwd=-20, lift=0.35)),
+    (3, dict(crouch=1.2, twist=45, head_turn=30, l_out=110, r_out=100, l_fwd=-10, r_fwd=10, l_elbow=10,
+             r_elbow=10, lift=0.5, jaw=0.5, brows=0.9, ear_l_back=0.9, ear_r_back=0.9, tail_side=-0.8)),
+    (7, dict(crouch=1.5, twist=35, head_turn=20, l_out=90, r_out=95, lift=0.5, tail_side=0.6)),
+    (11, merge(TUCK, dict(twist=20))),
+])
+
+
 # The tricks and hits, until their own clips come: one held look (poses.py), and the flips' whole
 # turn over the clip.
 HELD = {
@@ -248,12 +290,36 @@ FLIPS = {'jakb-board-flip-forward': 360, 'jakb-board-flip-forward-loop': 360,
          'jakb-board-flip-backward': -360, 'jakb-board-flip-backward-loop': -360}
 
 
+FEET = (94, 95, 100, 101)
+
+
+def feet(rig, d, t):
+    """The feet's middle (x, y) and their lowest point (z) in a pose."""
+    rot, tr = rig.local_pose(0, 0)
+    rot = [qmul(rot[k], d[k]) if k in d else rot[k] for k in range(len(rot))]
+    tr = [tr[k] + np.array(t) if k == 1 else tr[k] for k in range(len(tr))]
+    G = rig.globals(rot, tr)
+    P = np.array([G[j][:3, 3] for j in FEET])
+    return P[:, 0].mean(), P[:, 1].mean(), min(G[95][2, 3], G[101][2, 3])
+
+
+def plant(rig, d, t, lift=None):
+    """The hips moved so his feet stay where they stand on the board: bent knees take the hips
+    down and back over the feet (as a rider's do) instead of swinging the feet out from under him.
+    With `lift` the lowest foot is that far up; without it the hips keep their height."""
+    sx, sy, sz = feet(rig, {}, (0.0, 0.0, 0.0))
+    x, y, z = feet(rig, d, t)
+    nz = t[2] if lift is None else t[2] + (sz + lift - z)
+    return (t[0] + sx - x, t[1] + sy - y, nz)
+
+
 def frame_pose(rig, clipname, f):
     """(local joint deltas {joint: q}, hips' move, board (pitch, roll, yaw, lift), flip degrees)."""
     if clipname in CLIPS:
         p = CLIPS[clipname].params(f)
         w, t = pose(p)
         d = rig.deltas_from_world(0, 0, w)
+        t = plant(rig, d, t, p['lift'])
         face = {k: p[k] for k in FACE}
         board = (p['b_pitch'], p['b_roll'], p['b_yaw'], p['lift'])
         flip = p['flip']
@@ -262,6 +328,7 @@ def frame_pose(rig, clipname, f):
         w, t = POSES[look]
         t = t[1]
         d = rig.deltas_from_world(0, 0, w)
+        t = plant(rig, d, t)
         face = dict((k, DEFAULT[k]) for k in FACE)
         face.update(dict(jaw=0.75, brows=1.0) if look in ('nosegrab', 'method', 'kickflip') else {})
         if look == 'hit': face.update(jaw=1.0, brows=1.2)
@@ -338,12 +405,15 @@ if __name__ == "__main__":
         tiles = []
         for f in range(0, k, step):
             d, t, board, flip = frame_pose(r, n, f)
-            tiles.append(r.render(0, 0, d, trans={1: t}, size=200, views=("side",), title=f"{n[11:]} {f}"))
-        row = Image.new('RGB', (200 * len(tiles), 200), 'white')
-        for i, im in enumerate(tiles): row.paste(im, (200 * i, 0))
+            views = tuple(os.environ.get('VIEWS', 'side').split(','))
+            tiles.append(r.render(0, 0, d, trans={1: t}, size=int(os.environ.get('SIZE', 200)), views=views, title=f"{n[11:]} {f}"))
+        tw = tiles[0].width
+        row = Image.new('RGB', (tw * len(tiles), tiles[0].height), 'white')
+        for i, im in enumerate(tiles): row.paste(im, (tw * i, 0))
         rows.append(row)
     W = max(im.width for im in rows)
-    out = Image.new('RGB', (W, 200 * len(rows)), 'white')
-    for i, im in enumerate(rows): out.paste(im, (0, 200 * i))
+    H = rows[0].height
+    out = Image.new('RGB', (W, H * len(rows)), 'white')
+    for i, im in enumerate(rows): out.paste(im, (0, H * i))
     out.save(sys.argv[2])
 

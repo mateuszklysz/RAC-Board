@@ -61,6 +61,7 @@ struct Spring {
 
 class RideAnimator {
   public:
+    RideAnimator() { m_pose.clear(); }
     // Back to standing, so the next ride blends in from his own pose.
     void reset();
     // One tick of `dt` seconds: the clips' pose of this tick (mix), moving as `motion` says, turned
