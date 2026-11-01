@@ -157,10 +157,10 @@ void update_transforms(Target& self) {
             const float q = 1.0f / m->v[3].w; // (.div.vf Q vf0 vf5 :fsf #b11 :ftf #b11)
             Vec w = l;
             for (int k = 0; k < 3; k++) {
-                float acc = (&m->v[3].x)[k] * 1.0f;
-                acc = acc + (&m->v[0].x)[k] * l.x;
-                acc = acc + (&m->v[1].x)[k] * l.y;
-                (&w.x)[k] = (acc + (&m->v[2].x)[k] * l.z) * q;
+                float acc = m->v[3][k] * 1.0f;
+                acc = acc + m->v[0][k] * l.x;
+                acc = acc + m->v[1][k] * l.y;
+                w[k] = (acc + m->v[2][k] * l.z) * q;
             }
             p.prim_core.world_sphere = w;
         } else if (idx == -2) {
@@ -667,8 +667,8 @@ bool find_ground_point(Target& self, Vec& arg1, float arg2, float arg3) {
     s1.action_mask = caction::solid;
     arg1.w = 0.0f;
     for (int i = 0; i < 3; i++) {
-        (&s1.bbox.min.x)[i] = (&s2.x)[i] - arg3;
-        (&s1.bbox.max.x)[i] = (&s2.x)[i] + arg3;
+        s1.bbox.min[i] = s2[i] - arg3;
+        s1.bbox.max[i] = s2[i] + arg3;
     }
     s1.bbox.min.y = -40960.0f + s2.y;
     s1.bbox.max.y = 20480.0f + s2.y;

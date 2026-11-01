@@ -16,13 +16,15 @@ namespace jak {
 // A vector of four floats, GOAL's `vector` (the w lane is kept: some routines read or write it).
 struct Vec {
     float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
-    float& operator[](int i) { return (&x)[i]; }
-    float operator[](int i) const { return (&x)[i]; }
+    // A lane by number. A switch, not (&x)[i]: indexing past one member is undefined behaviour.
+    float& operator[](int i) { return i == 0 ? x : i == 1 ? y : i == 2 ? z : w; }
+    float operator[](int i) const { return i == 0 ? x : i == 1 ? y : i == 2 ? z : w; }
 };
 
 // GOAL's `quaternion`: x, y, z the vector part, w the scalar.
 struct Quat {
     float x = 0.0f, y = 0.0f, z = 0.0f, w = 1.0f;
+    float& operator[](int i) { return i == 0 ? x : i == 1 ? y : i == 2 ? z : w; }
 };
 
 // GOAL's `matrix`: four row vectors, `(-> m vector 2)` is `m.v[2]`; vectors multiply as rows.

@@ -26,12 +26,13 @@ if(NOT OpenRACMod_DIR)
 endif()
 find_package(OpenRACMod 1.12 REQUIRED)
 
-# Jak II's code: no fused multiply-adds, so every float comes out as OpenGOAL computes it.
+# Jak II's code: no fused multiply-adds, so every float comes out as OpenGOAL computes it, and no
+# type-based alias analysis, since the collision arena reads one GOAL word as several types.
 set(rac_board_fp_flags)
 if(MSVC)
   set(rac_board_fp_flags /fp:precise)
 else()
-  set(rac_board_fp_flags -ffp-contract=off -fno-fast-math)
+  set(rac_board_fp_flags -ffp-contract=off -fno-fast-math -fno-strict-aliasing)
 endif()
 
 file(GLOB rac_board_core_sources CONFIGURE_DEPENDS src/jak/*.cpp src/board/*.cpp)

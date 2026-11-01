@@ -175,7 +175,7 @@ float atan(float y, float x) {
 
 // deg- (trigonometry.gc).
 float deg_minus(float a, float b) {
-    return static_cast<float>(wrap16((to_int(a) << 48 >> 48) - (to_int(b) << 48 >> 48)));
+    return static_cast<float>(wrap16(wrap16(to_int(a)) - wrap16(to_int(b))));
 }
 
 // deg-diff (trigonometry.gc).
@@ -552,14 +552,13 @@ Quat& matrix_to_quaternion(Quat& out, const Mat& m) {
         v1 = 1;
     }
     float s = std::sqrt((1.0f - (m.v[a3][a3] + m.v[v1][v1])) + m.v[a2][a2]);
-    float* d = &out.x;
-    d[a2] = s / 2.0f;
+    out[a2] = s / 2.0f;
     if (s != 0.0f) {
         s = 0.5f / s;
     }
     out.w = (m.v[a3][v1] - m.v[v1][a3]) * s;
-    d[a3] = (m.v[a2][a3] + m.v[a3][a2]) * s;
-    d[v1] = (m.v[a2][v1] + m.v[v1][a2]) * s;
+    out[a3] = (m.v[a2][a3] + m.v[a3][a2]) * s;
+    out[v1] = (m.v[a2][v1] + m.v[v1][a2]) * s;
     return out;
 }
 

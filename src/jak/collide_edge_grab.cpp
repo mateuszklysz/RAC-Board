@@ -353,8 +353,8 @@ void do_edge_grabs(Target& self, CollideEdgeSpec& arg1) {
     s5.within_reach_box.min = v4;
     s5.within_reach_box.max = v5;
     for (int i = 0; i < 4; i++) {
-        s5.within_reach_box4w.min[i] = mips::f2i_x86((&v4.x)[i]);
-        s5.within_reach_box4w.max[i] = mips::f2i_x86((&v5.x)[i]);
+        s5.within_reach_box4w.min[i] = mips::f2i_x86(v4[i]);
+        s5.within_reach_box4w.max[i] = mips::f2i_x86(v5[i]);
     }
     {
         GoalStackFrame f;

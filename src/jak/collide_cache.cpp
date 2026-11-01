@@ -50,7 +50,7 @@ void fill_from_bg(World* world, CollideCache& cc, GoalCollideQuery& q) {
         if (q.ignore_pat.bits & t.pat.bits) continue;
         int32_t tmin[3], tmax[3];
         for (int k = 0; k < 3; k++) {
-            const float a = (&t.vertex[0].x)[k], b = (&t.vertex[1].x)[k], c = (&t.vertex[2].x)[k];
+            const float a = t.vertex[0][k], b = t.vertex[1][k], c = t.vertex[2][k];
             const int32_t ia = mips::f2i_x86(a), ib = mips::f2i_x86(b), ic = mips::f2i_x86(c);
             tmin[k] = std::min(std::min(ia, ib), ic);
             tmax[k] = std::max(std::max(ia, ib), ic);
@@ -112,8 +112,8 @@ void fill_using_bounding_box(World* world, GoalCollideQuery& q) {
     cc.ignore_mask = q.ignore_pat;
     BoundingBox4w b4;
     for (int i = 0; i < 4; i++) {
-        b4.min[i] = mips::f2i_x86((&v1.x)[i]);
-        b4.max[i] = mips::f2i_x86((&v2.x)[i]);
+        b4.min[i] = mips::f2i_x86(v1[i]);
+        b4.max[i] = mips::f2i_x86(v2[i]);
     }
     cc.num_tris = 0;
     cc.collide_box.min = v1;
