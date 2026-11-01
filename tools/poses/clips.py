@@ -38,6 +38,7 @@ DEFAULT = dict(
     b_pitch=0.0, b_roll=0.0, b_yaw=0.0,
     # the whole body (and the board) turned about his middle: forward flip (degrees, nose down)
     flip=0.0,
+    yaw=YAW,  # the hips turned side-on to the board (degrees about up)
 )
 FACE = ['jaw', 'blink', 'brows', 'snarl', 'ear_l_up', 'ear_r_up', 'ear_l_back', 'ear_r_back',
         'tail_side', 'tail_tip', 'tail_up']
@@ -47,7 +48,7 @@ def pose(p):
     """World turns per joint (model space over his standing pose) and the hips' move."""
     w = {}
     c = p['crouch']
-    add(w, 1, (Z, YAW), (L, p['hip_tip']), (X, p['lean']))
+    add(w, 1, (Z, p['yaw']), (L, p['hip_tip']), (X, p['lean']))
     add(w, 2, (Z, p['twist'] * 0.4), (X, p['sway']))
     add(w, 4, (Z, p['twist'] * 0.6), (L, p['chest_tip']), (X, -0.5 * p['lean']))
     add(w, 8, (Z, p['head_turn']), (L, p['head']), (X, p['tilt'] - 0.4 * p['lean']))
@@ -190,11 +191,44 @@ clip('jakb-board-get-on-land', [
 ])
 # Getting on: a hop onto the board (the board comes up under him at the end).
 clip('jakb-board-get-on', [
-    (0, dict(crouch=0.4, hip_tip=4, twist=0, head=-6, l_out=20, r_out=20, b_pitch=0, lift=0.0)),
-    (4, dict(crouch=1.5, hip_tip=16, chest_tip=14, head=-14, twist=10, l_out=40, r_out=40, l_fwd=30, r_fwd=30)),
-    (8, dict(crouch=0.6, hip_tip=4, twist=25, l_out=100, r_out=95, l_fwd=-10, r_fwd=-10, lift=0.3, jaw=0.5,
+    # frame 0 is his own standing pose (facing forward), so the ride starts from where he stood
+    (0, dict(yaw=0, crouch=0.0, hip_tip=0, chest_tip=0, twist=0, head=0, head_turn=0, l_out=0, r_out=0, l_fwd=0,
+             r_fwd=0, l_elbow=0, r_elbow=0, b_pitch=0, lift=0.0)),
+    (4, dict(yaw=-20, crouch=1.5, hip_tip=16, chest_tip=14, head=-14, twist=10, l_out=40, r_out=40, l_fwd=30, r_fwd=30)),
+    (8, dict(yaw=-55, crouch=0.6, hip_tip=4, twist=25, l_out=100, r_out=95, l_fwd=-10, r_fwd=-10, lift=0.3, jaw=0.5,
              brows=0.9, ear_l_up=0.6, ear_r_up=0.6)),
-    (13, dict(crouch=1.3, hip_tip=10, twist=30, l_out=60, r_out=58)),
+    (13, dict(yaw=YAW, crouch=1.3, hip_tip=10, twist=30, l_out=60, r_out=58)),
+])
+
+# His own standing pose, as at get-on's first frame: getting off ends here, so his own animation
+# takes over from where the clip leaves him.
+STAND = dict(yaw=0, crouch=0.0, hip_tip=0, chest_tip=0, twist=0, head=0, head_turn=0, l_out=0, r_out=0, l_fwd=0,
+             r_fwd=0, l_elbow=0, r_elbow=0, b_pitch=0, lift=0.0, ear_l_back=0.0, ear_r_back=0.0, tail_up=0.0)
+# Before a jump off from a hop: down to load, arms back.
+clip('jakb-board-get-off-pre', [
+    (0, dict(crouch=1.4, hip_tip=12)),
+    (5, dict(crouch=2.0, hip_tip=24, chest_tip=20, head=-18, l_out=30, r_out=30, l_fwd=-35, r_fwd=-35, l_elbow=30,
+             r_elbow=30, snarl=0.4, ear_l_up=-0.4, ear_r_up=-0.4, tail_up=-0.3)),
+])
+# Off the board: a pop up and forward off it, turning to face ahead, down onto his feet.
+clip('jakb-board-get-off', [
+    (0, dict(crouch=2.0, hip_tip=24, chest_tip=20, head=-18, l_out=30, r_out=30, l_fwd=-35, r_fwd=-35)),
+    (3, dict(yaw=-40, crouch=0.3, hip_tip=0, chest_tip=-6, head=0, twist=15, l_out=95, r_out=90, l_fwd=25,
+             r_fwd=20, l_elbow=20, r_elbow=20, b_pitch=-10, jaw=0.5, brows=0.9, ear_l_up=0.7, ear_r_up=0.6,
+             tail_up=0.8)),
+    (7, dict(yaw=-8, crouch=0.6, hip_tip=6, chest_tip=4, head=-6, twist=4, l_out=45, r_out=42, l_fwd=15, r_fwd=12,
+             l_elbow=15, r_elbow=15, jaw=0.2)),
+    (10, STAND),
+])
+# Knocked off: thrown back, arms flung out, then onto his feet facing ahead.
+clip('jakb-board-hit-get-off', [
+    (0, dict(crouch=0.8, hip_tip=-14, chest_tip=-18, head=18, l_out=110, r_out=105, l_fwd=-30, r_fwd=-25,
+             l_elbow=10, r_elbow=10, jaw=1.0, brows=1.2, blink=0.6, ear_l_up=0.9, ear_r_up=0.9, tail_up=0.9)),
+    (5, dict(yaw=-45, crouch=0.6, hip_tip=-8, chest_tip=-10, head=10, twist=-10, l_out=125, r_out=80, l_fwd=20,
+             r_fwd=-40, jaw=0.8, brows=1.0, ear_l_up=0.5, ear_r_up=0.8, tail_side=0.6)),
+    (10, dict(yaw=-15, crouch=1.4, hip_tip=14, chest_tip=10, head=-10, l_out=60, r_out=55, l_fwd=30, r_fwd=30,
+              l_elbow=30, r_elbow=30, jaw=0.3, brows=0.4)),
+    (15, STAND),
 ])
 
 

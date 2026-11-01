@@ -141,10 +141,12 @@ std::vector<JointOut> RideAnimator::joints(const float pivot[3]) const {
     float root[4];
     root_turn(root);
     if (root[3] < 0.99999f) {
-        // The root turns about the pivot: moved by pivot - R pivot.
+        // The root turns about the pivot: moved by pivot - R pivot. The game's matrices take a
+        // joint's quaternion as row vectors (quat_rows), so the turn it makes is the conjugate's.
         JointOut r{0, {root[0], root[1], root[2], root[3]}, {}};
+        const float made[4] = {-root[0], -root[1], -root[2], root[3]};
         float rp[3];
-        rotate(root, pivot, rp);
+        rotate(made, pivot, rp);
         for (int c = 0; c < 3; ++c) r.t[c] = pivot[c] - rp[c];
         out.push_back(r);
     }

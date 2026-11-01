@@ -361,6 +361,14 @@ bool start_ride() {
     jak::rot_to_dir_targ(t);
     Vec v = rac1::to_jak_dir(pose.velocity);
     t.control.transv = Vec{v.x * rac1::kUnit, v.y * rac1::kUnit, v.z * rac1::kUnit, 0.0f};
+    // Jak walks onto the board with his ground already found; get-on's hop is timed from it.
+    {
+        jak::CollideQuery q;
+        if (jak::find_ground(t, q, jak::root_prim_collide_with(t) & ~jak::cspec::water, 8192.0f, 81920.0f,
+                             1024.0f)) {
+            t.control.gspot_pat_surfce = q.best_pat;
+        }
+    }
     jak::go(t, jak::StateId::target_board_start);
     return true;
 }
@@ -415,6 +423,23 @@ void qrot(const float q[4], const float v[3], float out[3]) {
     const float c1[3] = {u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]};
     const float c2[3] = {u[1] * c1[2] - u[2] * c1[1], u[2] * c1[0] - u[0] * c1[2], u[0] * c1[1] - u[1] * c1[0]};
     for (int k = 0; k < 3; ++k) out[k] = v[k] + 2.0f * (q[3] * c1[k] + c2[k]);
+}
+
+// How far the board is open (0 folded, 1 under his feet), from the frame of its own skeleton's
+// open or close animation.
+float board_open(const jak::BoardRuntime& rt) {
+    const jak::BoardProcess& b = rt.board_proc;
+    if (!b.alive || b.state == jak::BoardProcState::hidden) return 0.0f;
+    const jak::JointControl& jc = b.skel;
+    const int n = static_cast<int>(std::min<uint32_t>(jc.active_channels, jak::JointControl::kAllocated));
+    if (n <= 0) return 0.0f;
+    // The channel pushed last is the one playing; the one under it blends out in 0.1 s.
+    const jak::JointControlChannel& ch = jc.channel[n - 1];
+    const float last = static_cast<float>(jak::anim_info(ch.frame_group).num_frames - 1);
+    const float f = last > 0.0f ? std::clamp(ch.frame_num / last, 0.0f, 1.0f) : 1.0f;
+    if (ch.frame_group == jak::AnimId::board_open) return f;
+    if (ch.frame_group == jak::AnimId::board_close) return 1.0f - f;
+    return 0.0f;
 }
 
 // Ratchet where the target is, in his riding pose, and the board under his feet.
@@ -529,9 +554,25 @@ void show_ride() {
         turn(left, -bt[rac1::kPitch]);
         turn(nose, bt[rac1::kRoll]);
     }
-    // A flip turns the board with him, about the same point (in the world: about his left, the
-    // yaw's (-sin, cos, 0)). The spin is the board's own twist above.
-    const float half = 0.5f * g_ride.look.flip();
+    // The board's own open and close (Jak II's board-open / board-close on the board's skeleton):
+    // folded on his back (as Jak carries it), it unfolds under his feet, and folds back the same way.
+    constexpr float kFolded = 0.35f;
+    const float open = board_open(*g_ride.rt);
+    if (open < 1.0f) {
+        const float k = open * open * (3.0f - 2.0f * open);
+        const float back[3] = {pose.position[0], pose.position[1], pose.position[2] + 0.8f * kPivot[2] * scale};
+        for (int c = 0; c < 3; ++c) {
+            p[c] = back[c] + k * (p[c] - back[c]);
+            const float size = kFolded + (1.0f - kFolded) * k;
+            r[c] *= size;
+            u[c] *= size;
+            f[c] *= size;
+        }
+    }
+    // A flip turns the board with him, about the same point and axis (in the world: about his left,
+    // the yaw's (-sin, cos, 0)), the way his root turns (the conjugate of its quaternion, see
+    // RideAnimator::joints): nose down. The spin is the board's own twist above.
+    const float half = -0.5f * g_ride.look.flip();
     if (half != 0.0f) {
         const float axis[3] = {-std::sin(yaw), std::cos(yaw), 0.0f};
         const float q[4] = {axis[0] * std::sin(half), axis[1] * std::sin(half), 0.0f, std::cos(half)};
