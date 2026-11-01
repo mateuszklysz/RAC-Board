@@ -402,61 +402,11 @@ void tick_ride(bool toggle_pressed) {
 constexpr float kPivot[3] = {0.0f, 0.0f, 2.8f};
 constexpr float kTwoPi = 6.2831853f;
 
-float anim_phase(const jak::AnimPlaying& a) {
-    const int frames = jak::anim_info(a.group).num_frames;
-    return frames > 1 ? std::clamp(a.frame / static_cast<float>(frames - 1), 0.0f, 1.0f) : 0.0f;
-}
-
-// What Ratchet shows for the board's state and the animation it plays (our own poses, picked as
-// Jak's animations are).
-rac1::LookTarget pick_look(float yaw_rate) {
-    using jak::AnimId;
-    using rac1::Look;
+// The board's spin (its main joint's twist) turns him with it; Jak's y turn is the game's z turn the
+// other way (the axes' mirror).
+float board_spin() {
     const jak::BoardRuntime& rt = *g_ride.rt;
-    const jak::AnimPlaying a = jak::anim_playing(rt.skel);
-    rac1::LookTarget look;
-    switch (a.group) {
-    case AnimId::jakb_board_duck_turn: look.pose = Look::duck; break;
-    case AnimId::jakb_board_jump:
-    case AnimId::jakb_board_jump_kickoff: look.pose = Look::jump; break;
-    case AnimId::jakb_board_jump_loop:
-    case AnimId::jakb_board_air_turn:
-    case AnimId::jakb_board_spin: look.pose = Look::tuck; break;
-    case AnimId::jakb_board_jump_kick: look.pose = Look::kick; break;
-    case AnimId::jakb_board_hit:
-    case AnimId::jakb_board_hit_forward:
-    case AnimId::jakb_board_hit_elec:
-    case AnimId::jakb_board_hit_get_off: look.pose = Look::hit; break;
-    case AnimId::jakb_board_nosegrab:
-    case AnimId::jakb_board_nosegrab_loop:
-    case AnimId::jakb_board_nosegrab_end:
-    case AnimId::jakb_board_noseflip: look.pose = Look::nosegrab; break;
-    case AnimId::jakb_board_method:
-    case AnimId::jakb_board_method_loop:
-    case AnimId::jakb_board_method_end: look.pose = Look::method; break;
-    case AnimId::jakb_board_kickflip_a:
-    case AnimId::jakb_board_kickflip_b:
-    case AnimId::jakb_board_kickflip_c: look.pose = Look::kickflip; break;
-    case AnimId::jakb_board_flip_forward:
-    case AnimId::jakb_board_flip_forward_loop:
-        look.pose = Look::tuck;
-        look.flip = kTwoPi * anim_phase(a);
-        break;
-    case AnimId::jakb_board_flip_backward:
-    case AnimId::jakb_board_flip_backward_loop:
-        look.pose = Look::tuck;
-        look.flip = -kTwoPi * anim_phase(a);
-        break;
-    default: look.pose = Look::stance; break;
-    }
-    const jak::StateId st = rt.state;
-    if (st == jak::StateId::target_board_duck_stance) look.pose = Look::duck;
-    if (st == jak::StateId::target_board_hit_ground) look.pose = Look::land;
-    if (look.pose == Look::stance) look.lean = std::clamp(-yaw_rate / 2.5f, -1.0f, 1.0f);
-    // The board's spin (its main joint's twist) turns him with it; Jak's y turn is the game's z
-    // turn the other way (the axes' mirror).
-    if (rt.main.mode == jak::JointModMode::rotate) look.spin = -rt.main.twist_y * (kTwoPi / 65536.0f);
-    return look;
+    return rt.main.mode == jak::JointModMode::rotate ? -rt.main.twist_y * (kTwoPi / 65536.0f) : 0.0f;
 }
 
 void qrot(const float q[4], const float v[3], float out[3]) {
@@ -525,7 +475,14 @@ void show_ride() {
     }
     g_ride.last_yaw = yaw;
     g_ride.has_yaw = true;
-    g_ride.look.update(pick_look(rate), motion, dt);
+    // Ratchet's clips, mixed as the board's logic plays Jak's.
+    static rac1::MixPose mixed;
+    rac1::mix(g_ride.rt->skel, mixed);
+    const jak::BoardRuntime& rt = *g_ride.rt;
+    const float upper = rt.upper_body.mode == jak::JointModMode::rotate
+                            ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
+                            : 0.0f;
+    g_ride.look.update(mixed, motion, board_spin(), upper, dt);
     const std::vector<rac1::JointOut> js = g_ride.look.joints(kPivot);
     std::vector<openrac_joint_offset> offsets(js.size());
     for (size_t i = 0; i < js.size(); ++i) {
@@ -551,6 +508,27 @@ void show_ride() {
     rac1::to_game_dir(forward, f);
     rac1::to_game_point(m.v[3], p);
 
+    // The clip's board under his feet: up by its lift, nose up (about the board's left), toe edge
+    // down (about its nose), turned about up. Model units, at his scale.
+    {
+        const float* bt = g_ride.look.pose().board;
+        const float lift = bt[rac1::kLift] * scale;
+        for (int k = 0; k < 3; ++k) p[k] += u[k] * lift;
+        const auto turn = [&](const float axis[3], float deg) {
+            if (deg == 0.0f) return;
+            const float h = 0.5f * deg * (kTwoPi / 360.0f), sn = std::sin(h);
+            const float q[4] = {axis[0] * sn, axis[1] * sn, axis[2] * sn, std::cos(h)};
+            float o[3];
+            qrot(q, r, o); std::copy(o, o + 3, r);
+            qrot(q, u, o); std::copy(o, o + 3, u);
+            qrot(q, f, o); std::copy(o, o + 3, f);
+        };
+        const float up[3] = {u[0], u[1], u[2]}, nose[3] = {f[0], f[1], f[2]};
+        const float left[3] = {-r[0], -r[1], -r[2]};
+        turn(up, bt[rac1::kYaw]);
+        turn(left, -bt[rac1::kPitch]);
+        turn(nose, bt[rac1::kRoll]);
+    }
     // A flip turns the board with him, about the same point (in the world: about his left, the
     // yaw's (-sin, cos, 0)). The spin is the board's own twist above.
     const float half = 0.5f * g_ride.look.flip();

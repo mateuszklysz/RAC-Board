@@ -115,4 +115,6 @@ CHANNELS = {
     'blink': [(19, Y, 68), (20, Y, 68)],
     'brows': [(26, Y, -16), (30, Y, -16)],
     'snarl': [(9, Y, -10)],
+    # the board's upper-body joint-mod (Jak's joint 5): his chest turned about up, a degree a unit
+    'upper_twist': [(4, Z, 1.0)],
 }

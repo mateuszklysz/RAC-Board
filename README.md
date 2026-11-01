@@ -7,12 +7,17 @@ and the same quirks, because it is Jak II's code, ported from
 [OpenGOAL](https://github.com/open-goal/jak-project) (THIRD_PARTY.md). Clank stays on Ratchet's
 back while he rides, as Daxter stays on Jak's shoulder.
 
-Ratchet rides in his own animation, made for this mod in the style of Jak's: side-on stance with
-bent knees and arms out, leaning into turns, ducking, tucks and grabs in the air, kicks, and the
-whole body turning with the board in flips and spins. On top of the poses nothing holds still:
-his knees soak up bumps and landings, arms, ears and tail swing and trail behind, his head looks
-into turns, and his face reacts (mouth, brows, blinks). The animation lengths the logic times its
-tricks by are Jak II's (only the numbers, read from a disc).
+Ratchet rides in his own animation, made for this mod in the style of Jak's. Each animation the
+board's logic plays has a clip of ours with Jak's name and number of frames, and the clips are
+mixed as Jak II mixes Jak's: the logic's own joint-control (channels, blends, the stance's
+ground-tween of turn, slope and duck) picks the clips, their frames and weights. The clips move his
+knees, hips, back, arms, head, face, ears and tail, and the board under his feet; the board's
+upper-body twist turns his chest and its spin his whole body. A little secondary motion (springs)
+keeps him alive between keys: knees on bumps and landings, ears and tail in the wind, blinks.
+Jak II's world is shrunk to Ratchet's size (0.42, his shoulders over Jak's), so speeds, jumps and
+collision keep Jak's proportions. The numbers taken from a disc are numbers only: the animation
+lengths and speeds, and Jak's shoulder height. So far the riding, turns, slopes, duck, jump, air
+and landing have their own clips; the tricks and hits hold one look each until theirs come.
 
 **Work in progress.** It needs OpenRAC with mod interface 1.12 (below).
 
@@ -36,7 +41,7 @@ rest goes through the pad buttons it already maps.
 ## What it needs from OpenRAC
 
 Mod interface 1.12: the hook on the hero's whole update (`rac1.player.update`), `hero_set_pose`
-and `hero_set_joints` (the riding poses), the level's collision triangles, props (the board model,
+and `hero_set_joints` (the riding clips), the level's collision triangles, props (the board model,
 with the hero's shadow) and the mod's own sounds. Until an OpenRAC release has it, build against the SDK folder of an OpenRAC checkout that
 does (`-DOPENRAC_SDK=<checkout>/sdk`).
 
@@ -57,12 +62,13 @@ from (paste this repository's address in the launcher's Mods tab).
 | `src/jak` | Jak II's engine routines the board uses: maths, the target's movement, collision |
 | `src/board` | the board: its states, physics and tricks |
 | `src/rac1` | the adapter: Ratchet & Clank's hero, pad, collision and drawing |
-| `tools` | generators: `gen_jak_types.py` (the GOAL structures), the board's model and sounds, `poses/` (Ratchet's riding poses) |
+| `tools` | generators: `gen_jak_types.py` (the GOAL structures), the board's model and sounds, `poses/` (Ratchet's riding clips) |
 | `tests` | the ported code against values worked out from the GOAL |
 
 `src/jak/types_gen.hpp` is written by `tools/gen_jak_types.py` from an OpenGOAL checkout, and
-`src/rac1/ride_poses.inc` by `tools/poses/export.py` from the poses in `tools/poses/poses.py` (it
-reads Ratchet's skeleton from your own OpenRAC level data; `poses.py` previews them to a PNG).
+`src/rac1/ride_clips.inc` by `tools/poses/clips.py` from its clip table, and
+`src/rac1/ride_poses.inc` (the secondary motion's channels) by `tools/poses/export.py` (both read
+Ratchet's skeleton from your own OpenRAC level data; `clips.py` also previews clips to a PNG).
 
 ## Contributing
 
