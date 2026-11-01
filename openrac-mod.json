@@ -1,0 +1,72 @@
+{
+  "format": 2,
+  "id": "rac-board",
+  "name": "RAC-Board",
+  "version": "0.1.0",
+  "author": "Mateusz Kłysz",
+  "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, grinds, wall kicks, and their quirks. Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
+  "license": "MIT",
+  "homepage": "https://github.com/mateuszklysz/rac-board",
+  "api": "1.12",
+  "games": {
+    "rac1": [
+      "pal",
+      "ntsc"
+    ]
+  },
+  "hooks": [
+    "rac1.player.update"
+  ],
+  "settings": [
+    {
+      "key": "board_button",
+      "name": "Board on and off",
+      "type": "choice",
+      "default": "down",
+      "choices": [
+        {
+          "value": "down",
+          "name": "D-pad Down"
+        },
+        {
+          "value": "l2r2",
+          "name": "L2 and R2 together"
+        },
+        {
+          "value": "r2",
+          "name": "R2 (as in Jak II)"
+        }
+      ],
+      "description": "The pad button that gets on the board and off it. R2 also strafes with the lock-strafe and keyboard-mouse mods."
+    },
+    {
+      "key": "board_key",
+      "name": "Board on and off (keyboard)",
+      "type": "keybind",
+      "binds": 2,
+      "default": "KeyB",
+      "description": "The key that gets on the board and off it."
+    },
+    {
+      "key": "swap_l1_r1",
+      "name": "Crouch on R1",
+      "type": "bool",
+      "default": true,
+      "description": "On: duck and grabs on R1, spins and flips on L1, as Ratchet crouches on R1. Off: Jak II's buttons, duck and grabs on L1, spins and flips on R1."
+    },
+    {
+      "key": "trick_display",
+      "name": "Trick names and points",
+      "type": "bool",
+      "default": true,
+      "description": "Shows each combo's tricks and points at the top of the picture, as OpenGOAL's Jak II does."
+    },
+    {
+      "key": "trace",
+      "name": "Trace",
+      "type": "bool",
+      "default": false,
+      "description": "For bug reports: a line in the game's log for each board state change."
+    }
+  ]
+}
