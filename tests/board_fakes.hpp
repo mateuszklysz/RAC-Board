@@ -15,7 +15,7 @@
 #include "board/runtime.hpp"
 #include "jak/cpad.hpp"
 #include "jak/host.hpp"
-#include "jak/math.hpp"
+#include "jak/math/math.hpp"
 #include "jak/movement.hpp"
 #include "jak/surface.hpp"
 #include "jak/target.hpp"

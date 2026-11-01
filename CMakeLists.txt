@@ -35,7 +35,7 @@ else()
   set(rac_board_fp_flags -ffp-contract=off -fno-fast-math -fno-strict-aliasing)
 endif()
 
-file(GLOB rac_board_core_sources CONFIGURE_DEPENDS src/jak/*.cpp src/board/*.cpp)
+file(GLOB rac_board_core_sources CONFIGURE_DEPENDS src/jak/*.cpp src/jak/*/*.cpp src/board/*.cpp)
 add_library(rac_board_core STATIC ${rac_board_core_sources})
 target_include_directories(rac_board_core PUBLIC src)
 set_target_properties(rac_board_core PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
@@ -46,11 +46,14 @@ if(NOT MSVC)
 endif()
 
 # The mod's library: the adapter over the core.
-file(GLOB rac_board_mod_sources CONFIGURE_DEPENDS src/rac1/*.cpp)
+file(GLOB rac_board_mod_sources CONFIGURE_DEPENDS src/rac1/*.cpp src/rac1/*/*.cpp)
 openrac_add_mod(rac_board MANIFEST openrac-mod.json SOURCES ${rac_board_mod_sources})
 target_link_libraries(rac_board PRIVATE rac_board_core)
 set_target_properties(rac_board PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 target_compile_options(rac_board PRIVATE ${rac_board_fp_flags})
+if(NOT MSVC)
+  target_compile_options(rac_board PRIVATE -Wall -Wextra)
+endif()
 # The board's model and sounds (tools/make_board.py, tools/make_sounds.py) and the third-party
 # notice go in the mod's folder beside the library: the mod loads them by these paths.
 get_target_property(rac_board_package rac_board OPENRAC_MOD_PACKAGE_DIR)
@@ -65,7 +68,7 @@ if(BUILD_TESTING)
     target_link_libraries(rac_board_${test_name} PRIVATE rac_board_core)
     target_include_directories(rac_board_${test_name} PRIVATE tests)
     if(test_name STREQUAL "ride_mix_test")
-      target_sources(rac_board_${test_name} PRIVATE src/rac1/ride_clip.cpp)
+      target_sources(rac_board_${test_name} PRIVATE src/rac1/anim/ride_clip.cpp)
     endif()
     set_target_properties(rac_board_${test_name} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
     target_compile_options(rac_board_${test_name} PRIVATE ${rac_board_fp_flags})

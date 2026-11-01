@@ -15,9 +15,9 @@
 #include "board/core.hpp"
 #include "board/surfaces.hpp"
 #include "board/target_hit.hpp"
-#include "jak/math.hpp"
-#include "jak/math_board.hpp"
-#include "jak/math_core.hpp"
+#include "jak/math/board.hpp"
+#include "jak/math/core.hpp"
+#include "jak/math/math.hpp"
 
 namespace jak {
 

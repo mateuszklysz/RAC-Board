@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "check.hpp"
-#include "jak/collide.hpp"
-#include "jak/collide_mem.hpp"
+#include "jak/collide/collide.hpp"
+#include "jak/collide/mem.hpp"
 #include "jak/host.hpp"
-#include "jak/math.hpp"
+#include "jak/math/math.hpp"
 #include "jak/surface.hpp"
 #include "jak/target.hpp"
 

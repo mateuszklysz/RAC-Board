@@ -5,14 +5,14 @@
 #include <algorithm>
 #include <string>
 
-#include "board/runtime.hpp"
 #include "board/board.hpp"
-#include "jak/math.hpp"
+#include "board/runtime.hpp"
+#include "jak/math/math.hpp"
 #include "jak/movement.hpp"
 #include "openrac/games/rac1.hpp"
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
-#include "rac1/effects.hpp"
+#include "rac1/fx/effects.hpp"
 
 namespace rac1 {
 

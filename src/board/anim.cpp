@@ -14,7 +14,7 @@
 #include <cmath>
 
 #include "board/runtime.hpp"
-#include "jak/math.hpp"
+#include "jak/math/math.hpp"
 
 namespace jak {
 

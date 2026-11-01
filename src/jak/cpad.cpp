@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-#include "jak/math.hpp"
+#include "jak/math/math.hpp"
 
 namespace jak {
 

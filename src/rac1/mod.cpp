@@ -16,7 +16,7 @@
 //   convert   units and axes between the two games
 #include "openrac/games/rac1.hpp"
 #include "rac1/context.hpp"
-#include "rac1/effects.hpp"
+#include "rac1/fx/effects.hpp"
 #include "rac1/interaction.hpp"
 #include "rac1/pad.hpp"
 #include "rac1/ride.hpp"

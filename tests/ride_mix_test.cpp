@@ -6,7 +6,7 @@
 #include <initializer_list>
 
 #include "check.hpp"
-#include "rac1/ride_clip.hpp"
+#include "rac1/anim/ride_clip.hpp"
 
 using namespace jak;
 using namespace rac1;

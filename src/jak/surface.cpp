@@ -8,8 +8,8 @@
 
 #include <cmath>
 
-#include "jak/collide_from_core.hpp"
-#include "jak/math.hpp"
+#include "jak/collide/from_core.hpp"
+#include "jak/math/math.hpp"
 #include "jak/target.hpp"
 
 namespace jak {

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
-// Jak II's maths (src/jak/math.cpp) against known values: the polynomial sine and arctangent near
+// Jak II's maths (src/jak/math/math.cpp) against known values: the polynomial sine and arctangent near
 // the C library's, the angle wrapping, and the vector and quaternion identities.
 #include "check.hpp"
-#include "jak/math.hpp"
+#include "jak/math/math.hpp"
 
 using namespace jak;
 

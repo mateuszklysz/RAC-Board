@@ -10,7 +10,7 @@
 #include "board/board.hpp"
 #include "board/collide.hpp"
 #include "board/core.hpp"
-#include "jak/math.hpp"
+#include "jak/math/math.hpp"
 
 namespace jak {
 

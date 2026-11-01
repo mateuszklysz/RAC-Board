@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
 // Stand-ins for what the movement core calls in the collision and board parts
-// (jak/collide_from_core.hpp, board/board_from_core.hpp), so the core's tests run alone: a target
+// (jak/collide/from_core.hpp, board/board_from_core.hpp), so the core's tests run alone: a target
 // shape of plain records, a flat floor at y = 0 for the move and the ground probe. The library is
 // static, so its parts that hold the real ones are left out of the test's link.
 #pragma once
 
 #include "board/board_from_core.hpp"
-#include "jak/collide_from_core.hpp"
-#include "jak/math.hpp"
+#include "jak/collide/from_core.hpp"
+#include "jak/math/math.hpp"
 #include "jak/target.hpp"
 
 namespace fake {

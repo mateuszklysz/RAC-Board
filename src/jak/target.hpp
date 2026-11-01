@@ -5,7 +5,7 @@
 //
 // Who owns what (each part adds its fields in its own block, so their work merges cleanly):
 //   movement core  (src/jak/movement*): the clock, the pad, the target's flags and timers
-//   collision      (src/jak/collide*):  the collide cache and the edge-grab info
+//   collision      (src/jak/collide/):  the collide cache and the edge-grab info
 //   board          (src/board/*):       the state machine, the animation channels, the board
 #pragma once
 

@@ -66,9 +66,9 @@ from (paste this repository's address in the launcher's Mods tab).
 | `tests` | the ported code against values worked out from the GOAL |
 
 `src/jak/types_gen.hpp` is written by `tools/gen_jak_types.py` from an OpenGOAL checkout, and
-`src/rac1/ride_clips.inc` by `tools/poses/clips.py` from `tools/poses/ride_keys.json` (Ratchet's
+`src/rac1/anim/ride_clips.inc` by `tools/poses/clips.py` from `tools/poses/ride_keys.json` (Ratchet's
 keyframes, worked out from the motion of Jak's board animations, fitted to Ratchet's body), and
-`src/rac1/ride_poses.inc` (the secondary motion's channels) by `tools/poses/export.py` (it reads
+`src/rac1/anim/ride_poses.inc` (the secondary motion's channels) by `tools/poses/export.py` (it reads
 Ratchet's skeleton from your own OpenRAC level data).
 
 ## Contributing

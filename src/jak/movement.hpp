@@ -11,7 +11,7 @@
 // move (the collide part), bend-gravity, post-flag-setup.
 #pragma once
 
-#include "jak/collide_mem.hpp"
+#include "jak/collide/mem.hpp"
 #include "jak/target.hpp"
 
 namespace jak {
@@ -34,7 +34,7 @@ constexpr uint64_t ignore = 1u << 2, dangerous = 1u << 4, in_air = 1u << 5, hit 
                    halfpipe = 1u << 24, indax = 1u << 28, teleporting = 1u << 30;
 } // namespace focus
 
-// collide-action and collide-spec: the collision's own (collide_mem.hpp).
+// collide-action and collide-spec: the collision's own (collide/mem.hpp).
 
 // penetrate (penetrate-h.gc).
 namespace penetrate {

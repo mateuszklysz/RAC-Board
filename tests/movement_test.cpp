@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
-// The target movement core (src/jak/movement.cpp, math_core.cpp) against values worked out from
+// The target movement core (src/jak/movement.cpp, math/core.cpp) against values worked out from
 // logic-target.gc, target-util.gc and target.gc, and the on-foot pipeline (target-post) running on
 // a flat floor (tests/core_fakes.hpp).
 #include <cstring>
 
 #include "check.hpp"
 #include "core_fakes.hpp"
-#include "jak/math_core.hpp"
+#include "jak/math/core.hpp"
 #include "jak/movement.hpp"
 #include "jak/surface.hpp"
 

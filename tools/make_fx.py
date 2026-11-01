@@ -3,7 +3,7 @@
 # Copyright (c) 2026 Mateusz Kłysz
 """Writes the board's effect sprites: assets/fx/<name>.glb and its <name>.png, each a flat square (x right, y up, 1 game
 unit across, facing +z) with a white texture of its own, coloured and faded by the mod as it draws
-it (src/rac1/board_fx.cpp). Made here from numbers, so they are the mod's own: a soft glow, a spark
+it (src/rac1/fx/board_fx.cpp). Made here from numbers, so they are the mod's own: a soft glow, a spark
 streak, a ring, a puff of dust and a burst.
 
     python3 tools/make_fx.py

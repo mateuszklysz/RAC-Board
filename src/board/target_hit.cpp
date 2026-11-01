@@ -11,10 +11,10 @@
 
 #include "board/board.hpp"
 #include "board/core.hpp"
-#include "jak/collide_from_core.hpp"
-#include "jak/collide_mem.hpp"
-#include "jak/math.hpp"
-#include "jak/math_core.hpp"
+#include "jak/collide/from_core.hpp"
+#include "jak/collide/mem.hpp"
+#include "jak/math/core.hpp"
+#include "jak/math/math.hpp"
 #include "jak/surface.hpp"
 
 namespace jak {
