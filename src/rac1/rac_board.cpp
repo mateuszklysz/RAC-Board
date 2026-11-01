@@ -4,14 +4,15 @@
 // RAC-Board in Ratchet & Clank: the adapter between the game and the board's logic (src/jak and
 // src/board, Jak II's code ported from OpenGOAL). While the hero rides, the mod takes his update
 // (rac1.player.update): it runs one frame of Jak II's target on the board, then puts Ratchet where
-// the target is (hero_set_pose) and the board prop under him. Off the board the game's own update
-// runs, untouched.
+// the target is (hero_set_pose), in his riding pose (ride_pose.hpp, hero_set_joints), and the board
+// prop under him. Off the board the game's own update runs, untouched.
 //
 // What it gives the board: the level's collision triangles (World), the mod's own sounds and the
 // trick names (Effects), the pad with the buttons moved to fit Ratchet & Clank, and a camera matrix
 // from the game's camera. Units and axes: convert.hpp.
 //
 // Settings (openrac-mod.json): board_button, board_key, swap_l1_r1, trick_display, trace.
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -34,6 +35,7 @@
 #include "openrac/games/rac1.hpp"
 #include "openrac/mod.hpp"
 #include "rac1/convert.hpp"
+#include "rac1/ride_pose.hpp"
 
 namespace {
 
@@ -203,6 +205,9 @@ struct Ride {
     bool leave = false;
     uint32_t loads = 0;
     jak::StateId traced = jak::StateId::none;
+    rac1::RideAnimator look;
+    float last_yaw = 0.0f;
+    bool has_yaw = false;
 };
 
 RacWorld g_world;
@@ -319,6 +324,9 @@ void hide_prop() {
 }
 
 void end_ride() {
+    g_mod->hero_set_joints({});
+    g_ride.look.reset();
+    g_ride.has_yaw = false;
     g_fx.stop_all();
     hide_prop();
     g_ride.t.reset();
@@ -389,20 +397,116 @@ void tick_ride(bool toggle_pressed) {
     }
 }
 
-// Ratchet where the target is, and the board under his feet.
+// The point flips turn about: his middle, above the board (model units).
+constexpr float kPivot[3] = {0.0f, 0.0f, 2.8f};
+constexpr float kTwoPi = 6.2831853f;
+
+float anim_phase(const jak::AnimPlaying& a) {
+    const int frames = jak::anim_info(a.group).num_frames;
+    return frames > 1 ? std::clamp(a.frame / static_cast<float>(frames - 1), 0.0f, 1.0f) : 0.0f;
+}
+
+// What Ratchet shows for the board's state and the animation it plays (our own poses, picked as
+// Jak's animations are).
+rac1::LookTarget pick_look(float yaw_rate) {
+    using jak::AnimId;
+    using rac1::Look;
+    const jak::BoardRuntime& rt = *g_ride.rt;
+    const jak::AnimPlaying a = jak::anim_playing(rt.skel);
+    rac1::LookTarget look;
+    switch (a.group) {
+    case AnimId::jakb_board_duck_turn: look.pose = Look::duck; break;
+    case AnimId::jakb_board_jump:
+    case AnimId::jakb_board_jump_kickoff: look.pose = Look::jump; break;
+    case AnimId::jakb_board_jump_loop:
+    case AnimId::jakb_board_air_turn:
+    case AnimId::jakb_board_spin: look.pose = Look::tuck; break;
+    case AnimId::jakb_board_jump_kick: look.pose = Look::kick; break;
+    case AnimId::jakb_board_hit:
+    case AnimId::jakb_board_hit_forward:
+    case AnimId::jakb_board_hit_elec:
+    case AnimId::jakb_board_hit_get_off: look.pose = Look::hit; break;
+    case AnimId::jakb_board_nosegrab:
+    case AnimId::jakb_board_nosegrab_loop:
+    case AnimId::jakb_board_nosegrab_end:
+    case AnimId::jakb_board_noseflip: look.pose = Look::nosegrab; break;
+    case AnimId::jakb_board_method:
+    case AnimId::jakb_board_method_loop:
+    case AnimId::jakb_board_method_end: look.pose = Look::method; break;
+    case AnimId::jakb_board_kickflip_a:
+    case AnimId::jakb_board_kickflip_b:
+    case AnimId::jakb_board_kickflip_c: look.pose = Look::kickflip; break;
+    case AnimId::jakb_board_flip_forward:
+    case AnimId::jakb_board_flip_forward_loop:
+        look.pose = Look::tuck;
+        look.flip = kTwoPi * anim_phase(a);
+        break;
+    case AnimId::jakb_board_flip_backward:
+    case AnimId::jakb_board_flip_backward_loop:
+        look.pose = Look::tuck;
+        look.flip = -kTwoPi * anim_phase(a);
+        break;
+    default: look.pose = Look::stance; break;
+    }
+    const jak::StateId st = rt.state;
+    if (st == jak::StateId::target_board_duck_stance) look.pose = Look::duck;
+    if (st == jak::StateId::target_board_hit_ground) look.pose = Look::land;
+    if (look.pose == Look::stance) look.lean = std::clamp(-yaw_rate / 2.5f, -1.0f, 1.0f);
+    // The board's spin (its main joint's twist) turns him with it; Jak's y turn is the game's z
+    // turn the other way (the axes' mirror).
+    if (rt.main.mode == jak::JointModMode::rotate) look.spin = -rt.main.twist_y * (kTwoPi / 65536.0f);
+    return look;
+}
+
+void qrot(const float q[4], const float v[3], float out[3]) {
+    // v + 2w (u x v) + 2 u x (u x v)
+    const float u[3] = {q[0], q[1], q[2]};
+    const float c1[3] = {u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]};
+    const float c2[3] = {u[1] * c1[2] - u[2] * c1[1], u[2] * c1[0] - u[0] * c1[2], u[0] * c1[1] - u[1] * c1[0]};
+    for (int k = 0; k < 3; ++k) out[k] = v[k] + 2.0f * (q[3] * c1[k] + c2[k]);
+}
+
+// Ratchet where the target is, in his riding pose, and the board under his feet.
 void show_ride() {
     const jak::Target& t = *g_ride.t;
     openrac_pose pose{};
     g_mod->hero_pose(pose);
+    const float scale = pose.scale > 0.0f ? pose.scale : 1.0f;
     rac1::to_game_point(drawn_trans(t), pose.position);
     Vec fwd;
     jak::vector_z_quaternion(fwd, t.control.quat);
+    const float yaw = rac1::jak_forward_to_yaw(fwd);
     pose.rotation[0] = 0.0f;
     pose.rotation[1] = 0.0f;
-    pose.rotation[2] = rac1::jak_forward_to_yaw(fwd);
+    pose.rotation[2] = yaw;
     rac1::to_game_dir(t.control.transv, pose.velocity);
     for (float& v : pose.velocity) v /= rac1::kUnit;
+    // His standing pose, held: the riding poses are offsets over it.
+    pose.seq = 0;
+    pose.frame = 0;
+    pose.anim_speed = 1.0f;
     g_mod->hero_set_pose(pose);
+
+    // The riding pose.
+    const float dt = 1.0f / (g_pal ? 50.0f : 60.0f);
+    float rate = 0.0f;
+    if (g_ride.has_yaw) {
+        float d = yaw - g_ride.last_yaw;
+        while (d > 3.14159265f) d -= kTwoPi;
+        while (d < -3.14159265f) d += kTwoPi;
+        rate = d / dt;
+    }
+    g_ride.last_yaw = yaw;
+    g_ride.has_yaw = true;
+    g_ride.look.update(pick_look(rate), dt);
+    const std::vector<rac1::JointOut> js = g_ride.look.joints(kPivot);
+    std::vector<openrac_joint_offset> offsets(js.size());
+    for (size_t i = 0; i < js.size(); ++i) {
+        offsets[i].joint = js[i].joint;
+        std::memcpy(offsets[i].rotation, js[i].q, sizeof js[i].q);
+        std::memcpy(offsets[i].translation, js[i].t, sizeof js[i].t);
+    }
+    g_mod->hero_set_joints(offsets);
 
     // The board: the body's rows in the game's axes, its spin (the main joint's twist) about up.
     // The mesh is y-up with its nose on +z (tools/make_board.py); its x is mirrored so the matrix
@@ -419,11 +523,27 @@ void show_ride() {
     rac1::to_game_dir(m.v[1], u);
     rac1::to_game_dir(forward, f);
     rac1::to_game_point(m.v[3], p);
+
+    // A flip turns the board with him, about the same point (in the world: about his left, the
+    // yaw's (-sin, cos, 0)). The spin is the board's own twist above.
+    const float half = 0.5f * g_ride.look.flip();
+    if (half != 0.0f) {
+        const float axis[3] = {-std::sin(yaw), std::cos(yaw), 0.0f};
+        const float q[4] = {axis[0] * std::sin(half), axis[1] * std::sin(half), 0.0f, std::cos(half)};
+        const float piv[3] = {pose.position[0], pose.position[1], pose.position[2] + kPivot[2] * scale};
+        float d[3] = {p[0] - piv[0], p[1] - piv[1], p[2] - piv[2]};
+        float o[3];
+        qrot(q, d, o);
+        for (int k = 0; k < 3; ++k) p[k] = piv[k] + o[k];
+        qrot(q, r, o); std::copy(o, o + 3, r);
+        qrot(q, u, o); std::copy(o, o + 3, u);
+        qrot(q, f, o); std::copy(o, o + 3, f);
+    }
     const float mat[16] = {-r[0], -r[1], -r[2], 0.0f, u[0], u[1], u[2], 0.0f,
                            f[0],  f[1],  f[2],  0.0f, p[0], p[1], p[2], 1.0f};
     if (g_prop < 0 || !g_mod->prop_pose(g_prop, mat)) {
         g_prop = g_mod->prop_create("assets/board.glb");
-        if (g_set.trace) g_mod->info("board prop " + std::to_string(g_prop));
+        if (g_set.trace) g_mod->info("board prop " + std::to_string(g_prop) + " hero scale " + std::to_string(scale));
         if (g_prop >= 0) g_mod->prop_pose(g_prop, mat);
     }
     if (g_prop >= 0) g_mod->prop_hide(g_prop, false);
