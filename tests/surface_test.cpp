@@ -15,7 +15,8 @@ void counting_hook(Target&, Surface& a0, const Surface&, const Surface&, int pas
     hook_calls++;
     a0.fric = static_cast<float>(pass);
 }
-void touch_a(Target&) {}
+// Not empty: MSVC folds identical functions, and an empty one would share gravel's address.
+void touch_a(Target&) { hook_calls += 100; }
 } // namespace
 
 int main() {
