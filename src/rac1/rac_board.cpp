@@ -324,8 +324,34 @@ void hide_prop() {
     if (g_prop >= 0) g_mod->prop_hide(g_prop, true);
 }
 
+// What he holds in his hand (the wrench, a weapon or gadget): put away while he rides, as Jak puts
+// his gun away. The hand's pieces are found once, as the ride starts, by class and nearness.
+std::vector<int> g_hand;
+
+void find_hand(const float hero[3]) {
+    g_hand.clear();
+    openrac_held held;
+    if (!g_mod->has_world() || !g_mod->hero_held(held)) return;
+    for (const openrac_moby& m : g_mod->moby_list()) {
+        if (m.flags & OPENRAC_MOBY_HIDDEN) continue;
+        for (int i = 0; i < held.count; ++i) {
+            const openrac_held_piece& p = held.pieces[i];
+            if (p.slot != 0 || (p.flags & (OPENRAC_HELD_HIDDEN | OPENRAC_HELD_LOOSE)) || p.oclass != m.oclass) continue;
+            const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
+            if (dx * dx + dy * dy + dz * dz < 9.0f) g_hand.push_back(m.slot);
+            break;
+        }
+    }
+}
+
+void hide_hand(bool hidden) {
+    for (int slot : g_hand) g_mod->moby_hide(slot, hidden);
+}
+
 void end_ride() {
     g_mod->hero_set_joints({});
+    hide_hand(false);
+    g_hand.clear();
     g_ride.look.reset();
     g_ride.has_yaw = false;
     g_fx.stop_all();
@@ -338,6 +364,8 @@ void end_ride() {
 bool start_ride() {
     openrac_pose pose{};
     if (!g_mod->hero_pose(pose)) return false;
+    find_hand(pose.position);
+    if (g_set.trace) g_mod->info("hand pieces " + std::to_string(g_hand.size()));
     g_ride.t = std::make_unique<jak::Target>();
     g_ride.rt = std::make_unique<jak::BoardRuntime>();
     g_ride.leave = false;
@@ -560,6 +588,7 @@ void show_ride() {
         if (g_prop >= 0) g_mod->prop_pose(g_prop, mat);
     }
     if (g_prop >= 0) g_mod->prop_hide(g_prop, false);
+    hide_hand(true);
 }
 
 // rac1.player.update: the board's frame while riding, the game's otherwise.
