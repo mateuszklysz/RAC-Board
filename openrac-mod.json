@@ -118,7 +118,7 @@
       "key": "grab_button",
       "name": "Duck and grabs",
       "type": "choice",
-      "default": "l2",
+      "default": "l1",
       "choices": [
         {
           "value": "l2",

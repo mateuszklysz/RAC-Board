@@ -63,7 +63,7 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 | Jump (hold for higher) | Cross | Cross |
 | Spin (stick left or right), flip (stick up or down) | R1 or R2 | R1 |
 | Grind a rail | Hold R1 or R2 with Cross | Circle or Square |
-| Duck, duck jump, grabs in the air | L2 | L1 |
+| Duck, duck jump, grabs in the air | L1 | L1 |
 
 - Circle, Square and Triangle keep the game's jobs.
 - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.

@@ -5,7 +5,7 @@ If one behaves differently from Jak II, that is a bug in the port.
 
 Sources: the [Jak speedrun wiki](https://wiki.jakspeedruns.com/Jetboard) and community guides.
 
-Buttons below are the mod's defaults (PS2 names): Cross jumps, R1 or R2 does tricks, L2 ducks,
+Buttons below are the mod's defaults (PS2 names): Cross jumps, R1 or R2 does tricks, L1 ducks,
 D-pad Up gets on and off. See the controls in the README.
 
 | Glitch | How to do it | What happens |
@@ -16,7 +16,7 @@ D-pad Up gets on and off. See the controls in the README.
 | Sideflip | Spin 360 with R1 and stick left or right, end facing forward with the stick held up | A side flip that sets up a hover |
 | Stationary hover | Stand still, press Cross, then D-pad Up in the air | A quick hover with no speed |
 | Turn hover | Start a hover at an angle with the stick centred | A hover that turns |
-| High jump | Hold L2, then press Cross | A higher jump |
+| High jump | Hold L1, then press Cross | A higher jump |
 
 ## Not in Ratchet & Clank
 
