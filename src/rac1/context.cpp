@@ -27,6 +27,8 @@ void load_settings(openrac::Mod& m) {
     }
     s.swap_l1_r1 = m.setting<bool>("swap_l1_r1");
     s.trick_display = m.setting<bool>("trick_display");
+    s.board_camera = m.setting<bool>("board_camera");
+    s.heat_haze = m.setting<bool>("heat_haze");
     s.trace = m.setting<bool>("trace");
 }
 

@@ -31,6 +31,8 @@ See [glitches.md](glitches.md).
 | Buttons | Get on and off with D-pad Down (or L2+R2, or R2). Duck and spin can swap (L1/R1) |
 | Animations | Our own clips for Ratchet, made in the style of Jak's and mixed by Jak II's joint control |
 | Effects | Particles and sounds made for the mod, shaped after Jak II's |
+| Heat haze | The air behind the jet wobbles (part 432), drawn with OpenRAC's heat haze |
+| Board camera | Jak II's string camera with the board's settings follows the board; the right stick swings it. A wall pulls it in toward Ratchet (Jak II swings round the wall instead) |
 | Trick names | Shown as one line with the combo and points, cleared 3 s after the combo ends |
 | Health | Ratchet's own nanotech. A hit while riding takes his health like Jak's |
 | Hits on enemies | The board's spin and touch attacks hit the game's creatures |
@@ -44,9 +46,7 @@ See [glitches.md](glitches.md).
 | Missing | Why |
 |---|---|
 | Rumble | OpenRAC does not drive the pad's motors for Ratchet & Clank yet |
-| Board camera | Jak II moves its camera for the board (halfpipes, rails). The mod cannot steer the game's camera, so the game's own camera follows |
 | Board music | Jak II switches the sound bank and music. There is no music to switch to |
-| Heat haze particles | OpenRAC has no screen distortion effect for mods |
 | Jak's voice ("oof" on a hit) | No sound from either game's disc is shipped |
 | Ice and tar surfaces | Ratchet & Clank's slippery ground has no Jak II material to map |
 | Trick-point pickups and races | These belong to Jak II's levels, not to the board |

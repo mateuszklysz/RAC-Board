@@ -21,6 +21,8 @@ struct Settings {
     std::vector<int> keys;     // keyboard binds that also toggle the board
     bool swap_l1_r1 = true;    // duck on R1, spin on L1
     bool trick_display = true; // trick names and points on screen
+    bool board_camera = true;  // Jak II's board camera while riding
+    bool heat_haze = true;     // the jet's heat haze behind the board
     bool trace = false;        // log states and hits
 };
 

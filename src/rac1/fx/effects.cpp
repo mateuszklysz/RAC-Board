@@ -125,6 +125,7 @@ void Effects::show_combo() {
 }
 
 void Effects::update() {
+    m_fx.haze = settings().heat_haze && mod().has_camera();
     m_fx.update(mod(), frame_seconds());
     if (m_shown > 0.0f) {
         m_shown -= frame_seconds();

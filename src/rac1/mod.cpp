@@ -17,6 +17,7 @@
 #include "openrac/games/rac1.hpp"
 #include "rac1/context.hpp"
 #include "rac1/fx/effects.hpp"
+#include "rac1/camera.hpp"
 #include "rac1/interaction.hpp"
 #include "rac1/pad.hpp"
 #include "rac1/ride.hpp"
@@ -30,11 +31,13 @@ void hero_update(const openrac::Original<void()>& original) {
     ctx().clock += frame_ticks();
     bool toggle = toggle_pressed();
     if (ride_level_changed()) {
+        camera_stop(true);
         end_ride();
         effects().clear_particles();
     }
     // The board's particles live on after he gets off, until they fade.
     effects().update();
+    camera_blend_tick();
     if (!riding()) {
         if (!(toggle && try_start_ride())) {
             note_on_foot();
@@ -45,6 +48,7 @@ void hero_update(const openrac::Original<void()>& original) {
     }
     const RideStep step = tick_ride(toggle);
     if (step != RideStep::taken) show_ride();
+    if (step == RideStep::taken) camera_stop(true); // the game's scene has its own camera
     if (step != RideStep::riding) {
         // Off the board: the game's update goes on from where the board (or the game) left Ratchet.
         end_ride();

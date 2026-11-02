@@ -62,6 +62,20 @@
       "description": "Shows each combo's tricks and points at the top of the picture, as OpenGOAL's Jak II does."
     },
     {
+      "key": "board_camera",
+      "name": "Board camera",
+      "type": "bool",
+      "default": true,
+      "description": "On: Jak II's camera follows the board, as it does in Jak II. Off: the game's own camera."
+    },
+    {
+      "key": "heat_haze",
+      "name": "Heat haze",
+      "type": "bool",
+      "default": true,
+      "description": "The air shimmers behind the board's jet, as in Jak II."
+    },
+    {
       "key": "trace",
       "name": "Trace",
       "type": "bool",

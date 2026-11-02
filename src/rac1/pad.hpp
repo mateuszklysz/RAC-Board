@@ -13,6 +13,8 @@ namespace rac1 {
 void on_pad(int port, uint8_t* report, int size);
 // The board's button (or key) went down this frame. Call once a frame.
 bool toggle_pressed();
+// The right stick's x as port 0 last sent it (128 the middle), for the board's camera.
+uint8_t pad_right_x();
 // The pad into the target's cpad for one frame (read-pad's input), the board's button as R2.
 void feed_pad(jak::Target& t, bool toggle);
 

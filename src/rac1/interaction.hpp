@@ -29,6 +29,8 @@ class Interaction : public jak::Interaction {
     jak::Mat joint_transform(int joint) override;
     jak::Vec get_trans(int joint) override;
     void joint_points(jak::Target& t) override;
+    bool camera_vectors(jak::Vec& view_flat, jak::Vec& target_move, jak::Vec& local_down) override;
+    void camera_relative_position(const jak::Vec* v) override;
     bool prims_touching(const void* touching, uint32_t mask) override;
     bool target_send_attack(jak::Handle to, jak::Symbol mode, const void* touching, uint32_t id, uint64_t count,
                             uint64_t penetrate) override;

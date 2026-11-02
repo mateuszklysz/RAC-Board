@@ -66,6 +66,7 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 | Grind a rail | Hold Circle or Square | Circle or Square |
 
 - **Crouch on R1** (on by default) puts duck where Ratchet crouches. Turn it off for Jak II's layout.
+- **Board camera** (on by default) is Jak II's camera. The right stick swings it round.
 - On a keyboard, **B** gets on and off (you can rebind it).
 
 ## Build

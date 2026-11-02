@@ -11,7 +11,8 @@ A small adapter connects it to the game.
 3. Riding: the mod feeds the pad to Jak II's pad code.
 4. Jak II's target runs one frame: its state, physics and collision.
 5. The mod draws Ratchet in his riding pose and the board under him.
-6. When the board's code leaves the board, the game's update takes over again.
+6. The board's camera (Jak II's string camera) puts the game's camera behind him.
+7. When the board's code leaves the board, the game's update takes over again.
 
 ## Folders
 
@@ -21,7 +22,7 @@ A small adapter connects it to the game.
 | `src/jak/collide` | Jak II's collision: the collide cache, the target's shape, edge grabs |
 | `src/jak/math` | Jak II's maths |
 | `src/board` | The board itself: states, physics, tricks, hits |
-| `src/rac1` | The adapter to Ratchet & Clank: pad, ride, health, hits |
+| `src/rac1` | The adapter to Ratchet & Clank: pad, ride, camera, health, hits |
 | `src/rac1/world` | The level's collision, the ground under the board, grind rails, the held item |
 | `src/rac1/fx` | Sounds, particles and the trick line |
 | `src/rac1/anim` | Ratchet's riding clips |

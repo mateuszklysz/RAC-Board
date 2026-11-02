@@ -26,6 +26,8 @@ class BoardFx {
     void update(openrac::Mod& mod, float dt);
     // All gone at once (a new level: its props go with it).
     void clear(openrac::Mod& mod);
+    // Whether the heat haze (part 432, a distort sprite) is drawn (OpenRAC's haze_set).
+    bool haze = true;
 
     enum Sprite { glow, streak, ring, puff, burst, kSprites };
     struct Particle {
@@ -43,6 +45,16 @@ class BoardFx {
     };
 
   private:
+    // A patch of heat haze: where, how big, how strong at birth, and its life.
+    struct Haze {
+        float pos[3]{};
+        float radius = 0.0f, strength = 0.0f;
+        float life = 0.0f, full = 1.0f;
+    };
+    void update_haze(openrac::Mod& mod, float dt);
+    std::vector<Haze> m_haze;
+    bool m_haze_shown = false;
+
     float rand(float lo, float range);
     void spawn(const Particle& p);
     std::vector<Particle> m_parts;

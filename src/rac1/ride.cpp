@@ -22,6 +22,7 @@
 #include "rac1/fx/effects.hpp"
 #include "rac1/interaction.hpp"
 #include "rac1/pad.hpp"
+#include "rac1/camera.hpp"
 #include "rac1/world/ground.hpp"
 #include "rac1/world/hand.hpp"
 #include "rac1/world/rails.hpp"
@@ -94,7 +95,7 @@ uint64_t hero_focus(int s) {
 jak::Mat camera_matrix(const float hero[3], float hero_yaw) {
     float fx = std::cos(hero_yaw), fy = std::sin(hero_yaw);
     float cam[3];
-    if (mod().camera_position(cam)) {
+    if (camera_eye(cam) || mod().camera_position(cam)) {
         const float dx = hero[0] - cam[0], dy = hero[1] - cam[1];
         const float len = std::sqrt(dx * dx + dy * dy);
         if (len > 0.01f) {
@@ -344,6 +345,7 @@ bool try_start_ride() {
     g_ride.traced = jak::StateId::none;
     g_rode = true;
     jak::go(*g_ride.t, jak::StateId::target_board_start);
+    if (settings().board_camera) camera_start(*g_ride.t);
     return true;
 }
 
@@ -402,7 +404,9 @@ RideStep tick_ride(bool toggle) {
         trace("ground hazard " + std::to_string(ground.surface) + ": off the board");
         return RideStep::left;
     }
-    return interaction().left ? RideStep::left : RideStep::riding;
+    if (interaction().left) return RideStep::left;
+    camera_tick(t);
+    return RideStep::riding;
 }
 
 void show_ride() {
@@ -420,6 +424,7 @@ void show_ride() {
 
 void end_ride() {
     if (!riding()) return;
+    camera_stop(false);
     g_board_time = g_ride.t->board->board_time;
     mod().hero_set_joints({});
     release_hand();

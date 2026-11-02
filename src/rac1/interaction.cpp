@@ -10,6 +10,7 @@
 #include "jak/math/math.hpp"
 #include "jak/movement.hpp"
 #include "openrac/games/rac1.hpp"
+#include "rac1/camera.hpp"
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
 #include "rac1/fx/effects.hpp"
@@ -214,5 +215,11 @@ jak::Vec drawn_trans(const jak::Target& t) {
     p.y = p.y + t.control.draw_offset.y;
     return p;
 }
+
+bool Interaction::camera_vectors(jak::Vec& view_flat, jak::Vec& target_move, jak::Vec& local_down) {
+    return rac1::camera_vectors(view_flat, target_move, local_down);
+}
+
+void Interaction::camera_relative_position(const jak::Vec* v) { camera_relative(v); }
 
 } // namespace rac1

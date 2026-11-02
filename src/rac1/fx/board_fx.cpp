@@ -101,7 +101,23 @@ void BoardFx::launch(const char* group, const float at[3], float yaw, float rate
         s.friction = 0.95f;
         s.life = rand(0.167f, 0.497f);
         spawn(s);
-        // 432 is a heat haze (distort): the sprites have none.
+        // 432: heat haze, three distort sprites a frame on a ring round the jet, a quarter metre
+        // up, gone in 0.135 s. Drawn as OpenRAC's heat haze (the picture behind them wobbles).
+        if (haze) {
+            for (int i = 0; i < 3; ++i) {
+                Haze h;
+                float d[3];
+                cone(d, 90.0f, rand(0.0f, 360.0f));
+                const float r0 = m(rand(0.0f, 0.5f));
+                std::copy(at, at + 3, h.pos);
+                h.pos[2] += m(0.25f);
+                for (int k = 0; k < 3; ++k) h.pos[k] += d[k] * r0;
+                h.radius = m(1.0f);
+                h.strength = 0.25f;
+                h.life = h.full = 0.135f;
+                m_haze.push_back(h);
+            }
+        }
     } else if (!std::strcmp(group, "part-431")) {
         // 431: the rail's sparks, white going orange then red, more the faster he grinds.
         m_carry += rate;
@@ -247,6 +263,7 @@ void BoardFx::shock(const float at[3]) {
 }
 
 void BoardFx::update(openrac::Mod& mod, float dt) {
+    update_haze(mod, dt);
     const float k = dt * 60.0f;  // the parts' numbers are a frame's at 60 a second
     float cam[3] = {0.0f, 0.0f, 0.0f};
     const bool have_cam = mod.camera_position(cam);
@@ -324,7 +341,31 @@ void BoardFx::update(openrac::Mod& mod, float dt) {
     }
 }
 
+void BoardFx::update_haze(openrac::Mod& mod, float dt) {
+    std::vector<openrac_haze> shown;
+    std::size_t w = 0;
+    for (Haze h : m_haze) {
+        h.life -= dt;
+        if (h.life <= 0.0f) continue;
+        m_haze[w++] = h;
+        if (shown.size() >= 48) continue; // OpenRAC's OPENRAC_HAZE_MAX is for every mod
+        openrac_haze o{};
+        std::copy(h.pos, h.pos + 3, o.position);
+        o.radius = h.radius;
+        o.strength = h.strength * (h.life / h.full); // fade-b: it fades out over its life
+        shown.push_back(o);
+    }
+    m_haze.resize(w);
+    if (!shown.empty() || m_haze_shown) {
+        mod.haze_set(shown);
+        m_haze_shown = !shown.empty();
+    }
+}
+
 void BoardFx::clear(openrac::Mod& mod) {
+    m_haze.clear();
+    if (m_haze_shown) mod.haze_set({});
+    m_haze_shown = false;
     m_parts.clear();
     for (std::vector<int>& props : m_props) {
         for (int id : props) mod.prop_remove(id);
