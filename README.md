@@ -96,7 +96,7 @@ Push a tag `v<version>` and the build workflow publishes a release the launcher 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/readme/credits-dark.svg">
-    <img src="docs/readme/credits-light.svg" alt="OpenGOAL and OpenRAC, with a heart between them" width="600">
+    <img src="docs/readme/credits-light.svg" alt="OpenRAC and OpenGOAL, with a heart between them" width="577">
   </picture>
 </p>
 
