@@ -48,7 +48,7 @@ void hero_update(const openrac::Original<void()>& original) {
         toggle = false; // the press that got on is not also the one that gets off
     }
     const RideStep step = tick_ride(toggle);
-    if (step != RideStep::taken) show_ride();
+    if (step != RideStep::taken) show_ride(step == RideStep::left);
     if (step == RideStep::taken) camera_stop(true); // the game's scene has its own camera
     if (step != RideStep::riding) {
         // Off the board: the game's update goes on from where the board (or the game) left Ratchet.

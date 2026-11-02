@@ -17,7 +17,8 @@ enum class RideStep {
 // One frame on the board.
 RideStep tick_ride(bool toggle);
 // Ratchet where the target is, in his riding pose, and the board under his feet.
-void show_ride();
+// `last`: the ride's last frame, his animation handed back to the game's.
+void show_ride(bool last);
 void end_ride();
 // A frame off the board: the riding pose eased out over the game's animation after a ride.
 void pose_out_tick();

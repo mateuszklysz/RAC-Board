@@ -157,7 +157,7 @@ void Effects::draw_combo() {
         l.flags = OPENRAC_HUD_SHADOW;
         lines.push_back(l);
     };
-    add(m_line, 0.76f, 0.8f, 255, 255, 255);
+    add(m_line, 0.76f, 0.8f, 220, 220, 220);
     add(m_score, 0.83f, 1.25f, 255, 190, 40);
     m_drawn = mod().hud_text_set(lines);
 }

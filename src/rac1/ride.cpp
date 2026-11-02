@@ -47,6 +47,9 @@ struct Ride {
     float shown[3] = {};  // where Ratchet was put last frame
     bool has_shown = false;
     float pose_in = 0.0f; // how far the riding pose has blended in (0 to 1)
+    // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
+    uint32_t start_seq = 0;
+    float start_speed = 1.0f;
 };
 Ride g_ride;
 World g_world;
@@ -189,7 +192,7 @@ bool grounded(jak::StateId st) {
 }
 
 // Ratchet's body: his place and heading, held in his standing pose, the riding pose over it.
-void show_ratchet(openrac_pose& pose, float yaw) {
+void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     const jak::Target& t = *g_ride.t;
     to_game_point(drawn_trans(t), pose.position);
     pose.rotation[0] = 0.0f;
@@ -197,9 +200,11 @@ void show_ratchet(openrac_pose& pose, float yaw) {
     pose.rotation[2] = yaw;
     to_game_dir(t.control.transv, pose.velocity);
     for (float& v : pose.velocity) v /= kUnit;
-    pose.seq = 0;
+    // Held in his standing pose under the riding one; on the last frame, back to the animation of
+    // the state the game goes on in, blended in by the game as the riding pose eases out.
+    pose.seq = last ? g_ride.start_seq : 0;
     pose.frame = 0;
-    pose.anim_speed = 1.0f;
+    pose.anim_speed = last ? g_ride.start_speed : 1.0f;
     mod().hero_set_pose(pose);
     std::copy(pose.position, pose.position + 3, g_ride.shown);
     g_ride.has_shown = true;
@@ -338,6 +343,8 @@ bool try_start_ride() {
     Interaction& io = interaction();
     io.target = t.get();
     io.hero_state = pose.state;
+    const uint32_t start_seq = pose.seq;
+    const float start_speed = pose.anim_speed > 0.0f ? pose.anim_speed : 1.0f;
     io.left = false;
     jak::attach(*t, *rt, io);
 
@@ -384,6 +391,8 @@ bool try_start_ride() {
     g_ride.rt = std::move(rt);
     g_ride.loads = mod().play_status().loads;
     g_ride.traced = jak::StateId::none;
+    g_ride.start_seq = start_seq;
+    g_ride.start_speed = start_speed;
     // Back on while the last ride's pose eases out: on from as far as it is.
     g_ride.pose_in = g_pose_out / kPoseOut;
     g_pose_out = 0.0f;
@@ -453,7 +462,7 @@ RideStep tick_ride(bool toggle) {
     return RideStep::riding;
 }
 
-void show_ride() {
+void show_ride(bool last) {
     const jak::Target& t = *g_ride.t;
     openrac_pose pose{};
     mod().hero_pose(pose);
@@ -461,7 +470,7 @@ void show_ride() {
     jak::vector_z_quaternion(fwd, t.control.quat);
     const float yaw = jak_forward_to_yaw(fwd);
     effects().yaw = yaw;
-    show_ratchet(pose, yaw);
+    show_ratchet(pose, yaw, last);
     show_board(pose, yaw);
     hide_hand(true);
 }
