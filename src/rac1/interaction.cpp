@@ -80,10 +80,17 @@ uint32_t Interaction::water_flags() {
     return in_water(hero_state) ? jak::waterflag::under_water : 0u;
 }
 
-// The body's matrix at its drawn place (rows: right, up, forward, trans), for every joint.
-jak::Mat Interaction::joint_transform(int) {
+// The body's matrix at its drawn place (rows: right, up, forward, trans), for every joint but 3.
+// Joint 3 is Jak's board joint: the spin's twist turns it, and its forward is Jak's side-on stance,
+// the facing less 15109.688 (the spin's end turns it back by that much and takes it as the facing).
+// Without the two, every spin's end turned him 83 degrees: R1 taps in the air snapped him round.
+jak::Mat Interaction::joint_transform(int joint) {
     jak::Mat m;
     jak::quaternion_to_matrix(m, target->control.quat);
+    if (joint == 3) {
+        const float twist = target->board ? target->board->troty : 0.0f;
+        for (int r = 0; r < 3; ++r) jak::vector_rotate_y(m.v[r], jak::Vec(m.v[r]), twist - 15109.688f);
+    }
     m.v[3] = drawn_trans(*target);
     return m;
 }
