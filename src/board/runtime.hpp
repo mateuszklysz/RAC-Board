@@ -170,6 +170,8 @@ struct BoardRuntime {
     Symbol did_move_to_pole{};       // (-> self control did-move-to-pole-or-max-jump-height) as a symbol
     Handle unknown_handle02 = 0;     // (-> self control unknown-handle02)
     // sound ids: the board's loops and one-shots (sound-id fields of board-info and control-info).
+    // RAC-Board: frames left of the landing assist (a near-straight spin landing eased to straight).
+    int land_assist_frames = 0;
     uint32_t engine_sound_id = 0, ride_sound_id = 0, spin_sound_id = 0, wind_sound_id = 0,
              bank_sound_id = 0, unknown_sound_id00 = 0, unknown_sound_id01 = 0,
              unknown_sound_id02 = 0, control_unknown_sound_id00 = 0;

@@ -32,15 +32,17 @@ def png(px):
 
 
 def image(alpha):
-    """White texels, alpha from alpha(x, y) with x and y in -1..1."""
+    """Texels from alpha(x, y) with x and y in -1..1: an alpha (white), or (alpha, (r, g, b))."""
     rows = []
     for j in range(N):
         y = (j + 0.5) / N * 2 - 1
         row = []
         for i in range(N):
             x = (i + 0.5) / N * 2 - 1
-            a = max(0.0, min(1.0, alpha(x, y)))
-            row.append((255, 255, 255, int(round(255 * a))))
+            v = alpha(x, y)
+            a, rgb = v if isinstance(v, tuple) else (v, (255, 255, 255))
+            a = max(0.0, min(1.0, a))
+            row.append((*rgb, int(round(255 * a))))
         rows.append(row)
     return rows
 
@@ -86,12 +88,17 @@ def compass(x, y):
     # the picture).
     up = -y
     r = math.hypot(x, up)
+    # The ring white, the pointer a light orange so the front reads at a glance.
     a = 0.7 * math.exp(-((r - 0.78) / 0.045) ** 2)
+    p = 0.0
     if 0.6 < up < 0.99:
         half = 0.2 * (0.99 - up) / 0.39
         if abs(x) < half:
-            a = max(a, 0.95 * min(1.0, (half - abs(x)) / 0.03))
-    return a
+            p = 0.95 * min(1.0, (half - abs(x)) / 0.03)
+    w = p / (p + a) if p + a > 0 else 0.0
+    orange = (255, 178, 102)
+    rgb = tuple(int(round(255 + (o - 255) * w)) for o in orange)
+    return max(a, p), rgb
 
 
 SPRITES = {"glow": glow, "streak": streak, "ring": ring, "puff": puff, "burst": burst, "compass": compass}

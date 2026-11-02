@@ -1003,6 +1003,20 @@ void target_board_real_post(Target& self) {
                     b.ride_rot_old = -1.0f;
                 }
             }
+            if (rt.land_assist_frames > 0 && rt.main.mode != JointModMode::rotate) {
+                // RAC-Board: after a landing within the margin, the board eases to its travel.
+                rt.land_assist_frames -= 1;
+                Vec fwd, up;
+                if (0.0f < vector_length(c.transv)) {
+                    vector_normalize_copy(fwd, c.transv, 1.0f);
+                    vector_y_quaternion(up, c.quat_for_control);
+                    Quat q;
+                    forward_up_nopitch_to_quaternion(q, fwd, up);
+                    quaternion_slerp(c.quat_for_control, c.quat_for_control, q,
+                                     rt.land_assist_frames == 0 ? 1.0f : 0.3f);
+                    c.dir_targ = c.quat_for_control;
+                }
+            }
             do_rotations2(self);
             reverse_conversions(self, c.transv);
             pre_collide_setup(self);

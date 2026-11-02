@@ -272,6 +272,11 @@ void target_board_resolve_points(Target& self) {
 }
 
 // ---- target-board-ground-check: landing a spin straight gives a boost ----
+// RAC-Board: how far off straight a spin may land and still count (65536 = a full turn): 40 degrees,
+// against Jak II's 25.
+constexpr float kLandAssistMargin = 40.0f * 65536.0f / 360.0f;
+// The frames over which such a landing eases to straight (the post's land_assist_frames).
+constexpr int kLandAssistFrames = 8;
 void target_board_ground_check(Target& self) {
     BoardInfo& b = *self.board;
     ControlInfo& c = self.control;
@@ -284,7 +289,10 @@ void target_board_ground_check(Target& self) {
                 f28 = 32768.0f + f28;
             }
             const float f0_5 = std::fabs(deg_diff(f0_2, f28));
-            if (f30 >= 49152.0f && 4551.1113f >= f0_5) {
+            // RAC-Board: Jak II takes 25 degrees (4551.1113) as straight; the mod is kinder, and a
+            // landing within the margin is eased to straight in the post (land_assist_frames).
+            if (f30 >= 49152.0f && kLandAssistMargin >= f0_5) {
+                runtime(self).land_assist_frames = kLandAssistFrames;
                 if (f30 >= 191146.67f) {
                     add_to_trick_list(self, BoardTricks::board_boost, 2000.0f);
                 } else if (f30 >= 126520.89f) {
