@@ -21,6 +21,10 @@ class Effects : public jak::Effects {
     void particles(const char* group, const jak::Vec& at, float rate) override;
     void trick(jak::BoardTricks trick, float points) override;
     void combo_end() override;
+    // The ride is over: a combo still running ends (its line fades out).
+    void ride_over() {
+        if (m_in_combo) combo_end();
+    }
 
     // One frame: the particles move, the combo line goes after a while.
     void update();

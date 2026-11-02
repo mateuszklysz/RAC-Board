@@ -4,7 +4,7 @@
   "name": "RAC-Board",
   "version": "0.2.0",
   "author": "Mateusz Kłysz",
-  "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold R1 and Cross). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
+  "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold R1 or R2 with Cross). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
   "license": "MIT",
   "homepage": "https://github.com/mateuszklysz/rac-board",
   "api": "1.12",
@@ -56,8 +56,12 @@
       "key": "trick_button",
       "name": "Spins and flips",
       "type": "choice",
-      "default": "r1",
+      "default": "r1r2",
       "choices": [
+        {
+          "value": "r1r2",
+          "name": "R1 or R2"
+        },
         {
           "value": "r1",
           "name": "R1 (as in Jak II)"
@@ -81,11 +85,15 @@
       "key": "grind_button",
       "name": "Grind",
       "type": "choice",
-      "default": "r1x",
+      "default": "r1r2x",
       "choices": [
         {
+          "value": "r1r2x",
+          "name": "R1 or R2, with Cross"
+        },
+        {
           "value": "r1x",
-          "name": "R1 and Cross together"
+          "name": "R1 and Cross"
         },
         {
           "value": "circle",

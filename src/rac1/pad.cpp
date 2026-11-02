@@ -42,19 +42,18 @@ uint16_t toggle_bits() {
     return 0;
 }
 
-bool all_held(uint16_t held, uint16_t buttons) { return buttons != 0 && (held & buttons) == buttons; }
-
 // The pad as the board reads it: Cross jumps, the trick, grind and grab buttons are Jak II's R1,
 // Circle and L1. The rest (Circle, Square, Triangle, L1's first-person view) stay the game's.
 uint16_t jak_buttons(bool toggle) {
     const uint16_t held = g_pad.held & static_cast<uint16_t>(~toggle_bits());
     uint16_t b = held & jak::pad::x;
-    const bool grind = all_held(held, settings().grind);
+    const Settings& s = settings();
+    const bool grind = s.grind.held(held);
     // R1 and Cross grind, not flip: a trick button inside the grind's buttons does no trick then.
-    const bool trick = all_held(held, settings().trick) && !(grind && (settings().grind & settings().trick));
-    if (trick) b |= jak::pad::r1;                                 // spins and flips
-    if (grind) b |= jak::pad::circle;                             // grind
-    if (all_held(held, settings().grab)) b |= jak::pad::l1;      // duck and grabs
+    const bool trick = s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
+    if (trick) b |= jak::pad::r1;                // spins and flips
+    if (grind) b |= jak::pad::circle;            // grind
+    if (s.grab.held(held)) b |= jak::pad::l1;    // duck and grabs
     if (toggle) b |= jak::pad::r2;                                // Jak II gets on and off the board on R2
     return b;
 }
@@ -90,7 +89,7 @@ bool toggle_pressed() {
 
 bool look_held() {
     const Settings& s = settings();
-    if ((s.trick | s.grind | s.grab) & jak::pad::l1) return false;
+    if ((s.trick.bits() | s.grind.bits() | s.grab.bits()) & jak::pad::l1) return false;
     return g_pad.valid && (g_pad.held & jak::pad::l1);
 }
 

@@ -15,7 +15,7 @@ Sources: the [Jak speedrun wiki](https://wiki.jakspeedruns.com/Jetboard) and com
 | Turn hover | Start a hover at an angle with the stick centred | A hover that turns |
 | High jump | Hold the duck button while jumping | A higher jump |
 
-The buttons here are Jak II's names: the duck button is L2 by default and the trick button R1. See the controls in the README.
+The buttons here are Jak II's names: the duck button is L2 by default and the trick button R1 (or R2). See the controls in the README.
 
 ## Not in Ratchet & Clank
 

@@ -61,12 +61,13 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 |---|---|---|
 | Get on and off | D-pad Up (or D-pad Down, L2+R2, or R2) | R2 |
 | Jump (hold for higher) | Cross | Cross |
-| Spin (stick left or right), flip (stick up or down) | R1 | R1 |
-| Grind a rail | Hold R1 and Cross | Circle or Square |
+| Spin (stick left or right), flip (stick up or down) | R1 or R2 | R1 |
+| Grind a rail | Hold R1 or R2 with Cross | Circle or Square |
 | Duck, duck jump, grabs in the air | L2 | L1 |
 | First-person view (on the ground, the board stops) | L1 (the game's) | |
 
 - Circle, Square and Triangle keep the game's jobs.
+- In a trick a faint ring under Ratchet points where the board's nose is, and a dot shows where he is going: land with the two together for the boost.
 - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
 - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.
 - On a keyboard, **B** gets on and off (you can rebind it).

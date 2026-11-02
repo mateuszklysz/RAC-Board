@@ -16,16 +16,25 @@ namespace rac1 {
 // The button that gets on and off the board (setting board_button).
 enum class Toggle { up, down, l2r2, r2 };
 
+// A board button as pad buttons (Jak II's pad bits): one of `any` (if any) and all of `all`.
+struct PadButtons {
+    uint16_t any = 0;
+    uint16_t all = 0;
+    bool held(uint16_t pad) const {
+        return (any | all) != 0 && (any == 0 || (pad & any) != 0) && (pad & all) == all;
+    }
+    uint16_t bits() const { return static_cast<uint16_t>(any | all); }
+};
+
 // The mod's settings (openrac-mod.json).
 struct Settings {
     Toggle toggle = Toggle::up;
     std::vector<int> keys;     // keyboard binds that also toggle the board
-    // The board's buttons (settings trick_button, grind_button, grab_button): the pad buttons, as
-    // Jak II's pad bits, held together for Jak II's R1 (spins, flips), Circle (grind) and L1 (duck,
-    // grabs). 0: none.
-    uint16_t trick = 0;
-    uint16_t grind = 0;
-    uint16_t grab = 0;
+    // The board's buttons (settings trick_button, grind_button, grab_button) for Jak II's R1 (spins,
+    // flips), Circle (grind) and L1 (duck, grabs).
+    PadButtons trick;
+    PadButtons grind;
+    PadButtons grab;
     bool trick_display = true; // trick names and points on screen
     bool board_camera = true;  // Jak II's board camera while riding
     bool heat_haze = true;     // the jet's heat haze behind the board

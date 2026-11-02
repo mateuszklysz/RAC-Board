@@ -60,6 +60,12 @@ struct Ride {
 Ride g_ride;
 World g_world;
 int g_board_prop = -1;
+float g_board_nose[2] = {1.0f, 0.0f}; // where the board's nose points, flat, as drawn last
+// The trick guide: a faint ring under him in the air with a pointer at the board's nose, and a dot
+// where he is going, so a spin is easier to end facing the way he travels (and land the boost).
+int g_guide_prop = -1;
+int g_guide_dot = -1;
+float g_guide_alpha = 0.0f;
 
 // The riding pose eased in as he gets on and out after he gets off, over these seconds, so his body
 // does not jump between the game's animation and the board's pose.
@@ -237,6 +243,9 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     pose.seq = last ? g_ride.start_seq : 0;
     pose.frame = 0;
     pose.anim_speed = last ? g_ride.start_speed : 1.0f;
+    // For the game's camera: on the ground or in the air, as the board is.
+    pose.flags = (t.control.status & jak::cstat::on_surface) || grounded(g_ride.rt->state) ? OPENRAC_POSE_ON_GROUND
+                                                                                         : OPENRAC_POSE_IN_AIR;
     mod().hero_set_pose(pose);
     std::copy(pose.position, pose.position + 3, g_ride.shown);
     g_ride.has_shown = true;
@@ -334,6 +343,56 @@ void show_board(const openrac_pose& pose, float yaw) {
         if (g_board_prop >= 0) mod().prop_pose(g_board_prop, mat);
     }
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, false);
+    const float nl = std::sqrt(nose[0] * nose[0] + nose[1] * nose[1]);
+    if (nl > 0.2f) g_board_nose[0] = nose[0] / nl, g_board_nose[1] = nose[1] / nl;
+}
+
+// A flat prop of the guide (`id`, made from `mesh` when there is none), centred at `at`, `size`
+// across, its +y along `dir`.
+void pose_flat(int& id, const char* mesh, const float at[3], const float dir[2], float size, const float tint[4]) {
+    const float mat[16] = {dir[1] * size, -dir[0] * size, 0.0f, 0.0f, dir[0] * size, dir[1] * size, 0.0f, 0.0f,
+                           0.0f,          0.0f,           1.0f, 0.0f, at[0],         at[1],         at[2], 1.0f};
+    if (id < 0 || !mod().prop_pose(id, mat, tint, OPENRAC_PROP_ALPHA)) {
+        id = mod().prop_create(mesh);
+        if (id < 0 || !mod().prop_pose(id, mat, tint, OPENRAC_PROP_ALPHA)) return;
+    }
+    mod().prop_hide(id, false);
+}
+
+void hide_guide() {
+    g_guide_alpha = 0.0f;
+    if (g_guide_prop >= 0) mod().prop_hide(g_guide_prop, true);
+    if (g_guide_dot >= 0) mod().prop_hide(g_guide_dot, true);
+}
+
+// The guide while a trick runs in the air (a spin, a flip, a grab), faded in and out.
+void show_guide(const openrac_pose& pose) {
+    using jak::StateId;
+    const jak::Target& t = *g_ride.t;
+    const StateId st = g_ride.rt->state;
+    const bool air = !(t.control.status & jak::cstat::on_surface) && !grounded(st);
+    const bool trick = st == StateId::target_board_flip || st == StateId::target_board_hold ||
+                       st == StateId::target_board_trickx || g_ride.spin_hold > 0.05f;
+    const float want = air && trick ? 1.0f : 0.0f;
+    const float rate = want > g_guide_alpha ? 8.0f : 5.0f;
+    g_guide_alpha += std::clamp(want - g_guide_alpha, -rate * frame_seconds(), rate * frame_seconds());
+    if (g_guide_alpha <= 0.01f) {
+        hide_guide();
+        return;
+    }
+    const float at[3] = {pose.position[0], pose.position[1], pose.position[2] + 0.05f};
+    const float ring_tint[4] = {1.0f, 1.0f, 1.0f, 0.4f * g_guide_alpha};
+    pose_flat(g_guide_prop, "assets/fx/compass.glb", at, g_board_nose, 2.2f, ring_tint);
+    // The way he travels: a soft dot on the ring.
+    const float vx = pose.velocity[0], vy = pose.velocity[1], v = std::sqrt(vx * vx + vy * vy);
+    if (v < 0.5f) {
+        if (g_guide_dot >= 0) mod().prop_hide(g_guide_dot, true);
+        return;
+    }
+    const float dir[2] = {vx / v, vy / v};
+    const float dot_at[3] = {at[0] + dir[0] * 0.86f, at[1] + dir[1] * 0.86f, at[2]};
+    const float dot_tint[4] = {1.0f, 0.85f, 0.4f, 0.55f * g_guide_alpha};
+    pose_flat(g_guide_dot, "assets/fx/glow.glb", dot_at, dir, 0.45f, dot_tint);
 }
 
 } // namespace
@@ -505,6 +564,11 @@ void show_ride(bool last) {
     effects().yaw = yaw;
     show_ratchet(pose, yaw, last);
     show_board(pose, yaw);
+    if (last) {
+        hide_guide();
+    } else {
+        show_guide(pose);
+    }
     hide_hand(true);
 }
 
@@ -559,6 +623,9 @@ void end_ride() {
     effects().stop_sounds();
     forget_ground();
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
+    hide_guide();
+    // A combo still running ends with the ride: its line fades as after a landing.
+    effects().ride_over();
     interaction().target = nullptr;
     interaction().left = false;
     g_ride.t.reset();

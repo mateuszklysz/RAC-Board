@@ -10,19 +10,24 @@ namespace rac1 {
 
 namespace {
 
-// A button setting's value as the pad buttons held for it.
-uint16_t pad_buttons(const std::string& v) {
+// A button setting's value as the pad buttons held for it. R1 and R2 do the same, as Ratchet
+// crouches on either.
+PadButtons pad_buttons(const std::string& v) {
     using namespace jak::pad;
-    const uint32_t b = v == "r1x"      ? r1 | x
-                       : v == "r1"     ? r1
-                       : v == "l1"     ? l1
-                       : v == "r2"     ? r2
-                       : v == "l2"     ? l2
-                       : v == "r3"     ? r3
-                       : v == "circle" ? circle
-                       : v == "square" ? square
-                                       : 0u;
-    return static_cast<uint16_t>(b);
+    const auto b = [](uint32_t any, uint32_t all) {
+        return PadButtons{static_cast<uint16_t>(any), static_cast<uint16_t>(all)};
+    };
+    if (v == "r1r2x") return b(r1 | r2, x);
+    if (v == "r1r2") return b(r1 | r2, 0);
+    if (v == "r1x") return b(0, r1 | x);
+    if (v == "r1") return b(0, r1);
+    if (v == "l1") return b(0, l1);
+    if (v == "r2") return b(0, r2);
+    if (v == "l2") return b(0, l2);
+    if (v == "r3") return b(0, r3);
+    if (v == "circle") return b(0, circle);
+    if (v == "square") return b(0, square);
+    return {};
 }
 
 } // namespace

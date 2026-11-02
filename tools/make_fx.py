@@ -4,7 +4,7 @@
 """Writes the board's effect sprites: assets/fx/<name>.glb and its <name>.png, each a flat square (x right, y up, 1 game
 unit across, facing +z) with a white texture of its own, coloured and faded by the mod as it draws
 it (src/rac1/fx/board_fx.cpp). Made here from numbers, so they are the mod's own: a soft glow, a spark
-streak, a ring, a puff of dust and a burst.
+streak, a ring, a puff of dust, a burst, and the trick guide's ring with its pointer (compass).
 
     python3 tools/make_fx.py
 
@@ -81,7 +81,20 @@ def burst(x, y):
     return max(0.0, 1 - r) ** 1.5 * (0.35 + 0.65 * rays) + max(0.0, 1 - r * 3) ** 2
 
 
-SPRITES = {"glow": glow, "streak": streak, "ring": ring, "puff": puff, "burst": burst}
+def compass(x, y):
+    # The trick guide: a thin ring and a pointer on it at the front (+y of the mesh, the top of
+    # the picture).
+    up = -y
+    r = math.hypot(x, up)
+    a = 0.7 * math.exp(-((r - 0.78) / 0.045) ** 2)
+    if 0.6 < up < 0.99:
+        half = 0.2 * (0.99 - up) / 0.39
+        if abs(x) < half:
+            a = max(a, 0.95 * min(1.0, (half - abs(x)) / 0.03))
+    return a
+
+
+SPRITES = {"glow": glow, "streak": streak, "ring": ring, "puff": puff, "burst": burst, "compass": compass}
 
 
 def glb(name):
