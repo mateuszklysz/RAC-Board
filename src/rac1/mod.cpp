@@ -35,6 +35,7 @@ void hero_update(const openrac::Original<void()>& original) {
         return;
     }
     ctx().clock += frame_ticks();
+    effects().warm();
     bool toggle = toggle_pressed();
     if (ride_level_changed()) {
         camera_stop(true);

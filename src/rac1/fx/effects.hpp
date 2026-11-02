@@ -29,6 +29,10 @@ class Effects : public jak::Effects {
         if (m_in_combo) combo_end();
     }
 
+    // Once, in the first level: every sound read and every prop mesh made known to the port, so
+    // that none is read when first used (a new mesh makes the port read the level again: a hitch).
+    void warm();
+
     // One frame: the particles move, the combo line goes after a while.
     void update();
     // The ride is over: every sound stops.
@@ -55,6 +59,7 @@ class Effects : public jak::Effects {
     int m_count = 0;
     float m_points = 0.0f;
     bool m_in_combo = false;
+    bool m_warm = false;
     float m_shown = 0.0f; // seconds the line stays after the combo ends
     std::string m_line;   // the tricks, as render-combo writes them
     std::string m_score;  // and the points

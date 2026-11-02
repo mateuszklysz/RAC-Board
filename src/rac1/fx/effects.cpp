@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
 #include <vector>
 
 #include "rac1/context.hpp"
@@ -46,6 +47,31 @@ int Effects::sound(const char* name) {
     const int s = mod().sound_load(std::string("assets/sounds/") + name + ".wav");
     m_sounds[name] = s;
     return s;
+}
+
+// The mod's own sounds (assets/sounds) and every mesh a prop of the mod's draws.
+constexpr const char* kSoundFiles[] = {"board-bank",  "board-boost",     "board-boots",  "board-bounce",
+                                       "board-glance", "board-spin-loop", "board-steady", "board-turn",
+                                       "board-wind",   "get-burned",      "swim-enter"};
+constexpr const char* kPropMeshes[] = {"assets/board.glb",    "assets/fx/compass.glb", "assets/fx/glow.glb",
+                                       "assets/fx/streak.glb", "assets/fx/ring.glb",    "assets/fx/puff.glb",
+                                       "assets/fx/burst.glb"};
+
+void Effects::warm() {
+    if (m_warm) return;
+    // A prop is made only in a level: all of them in one frame, so the port reads the level again
+    // once, here, and keeps the meshes for every level after.
+    int ids[std::size(kPropMeshes)];
+    for (std::size_t i = 0; i < std::size(kPropMeshes); ++i) {
+        ids[i] = mod().prop_create(kPropMeshes[i]);
+        if (ids[i] < 0) {
+            for (std::size_t j = 0; j < i; ++j) mod().prop_remove(ids[j]);
+            return; // not in a level yet (or no props free): the next frame tries again
+        }
+    }
+    for (const int id : ids) mod().prop_remove(id);
+    for (const char* name : kSoundFiles) sound(name);
+    m_warm = true;
 }
 
 namespace {
