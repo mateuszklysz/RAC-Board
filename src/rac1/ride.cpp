@@ -47,6 +47,10 @@ struct Ride {
     float shown[3] = {};  // where Ratchet was put last frame
     bool has_shown = false;
     float pose_in = 0.0f; // how far the riding pose has blended in (0 to 1)
+    float spin_hold = 0.0f;  // how far the spin's grab of the board has blended in (0 to 1)
+    float spin_lead = 0.0f;  // the upper body's lead into the spin (radians)
+    float last_spin = 0.0f;
+    float spin_time = 0.0f;  // the grab loop's frame clock
     // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
     uint32_t start_seq = 0;
     float start_speed = 1.0f;
@@ -141,6 +145,32 @@ jak::Mat camera_matrix(const float hero[3], float hero_yaw) {
     m.v[1] = jak::Vec{0.0f, 1.0f, 0.0f, 0.0f};
     m.v[2] = jak::Vec{fx, 0.0f, fy, 0.0f};
     return m;
+}
+
+float board_spin();
+
+// Ratchet's own touch on the spin (Jak spins stiff in his jump pose): as the board turns he crouches
+// and reaches down to hold its nose (the nosegrab's loop, blended in by the spin's speed), and his
+// shoulders and head lead into the turn. Only his look: the board's logic is Jak's.
+void spin_pose(MixPose& mixed, float& upper, float dt) {
+    if (dt <= 0.0f) return;
+    const float spin = board_spin();
+    float d = spin - g_ride.last_spin;
+    while (d > kPi) d -= kTwoPi;
+    while (d < -kPi) d += kTwoPi;
+    g_ride.last_spin = spin;
+    const float rate = spin != 0.0f ? d / dt : 0.0f; // radians a second
+    const float want = std::clamp(std::fabs(rate) / 6.0f, 0.0f, 1.0f);
+    const float a = 1.0f - std::exp(-dt / (want > g_ride.spin_hold ? 0.08f : 0.2f));
+    g_ride.spin_hold += a * (want - g_ride.spin_hold);
+    g_ride.spin_lead += a * (std::clamp(0.06f * rate, -0.45f, 0.45f) - g_ride.spin_lead);
+    upper += g_ride.spin_lead;
+    if (g_ride.spin_hold < 0.01f) return;
+    static const Clip* grab = find_clip(jak::AnimId::jakb_board_nosegrab_loop);
+    if (!grab) return;
+    static MixPose held;
+    sample(*grab, std::fmod(g_ride.spin_time += dt * 30.0f, static_cast<float>(grab->frames - 1)), held);
+    blend(mixed, held, 0.75f * g_ride.spin_hold);
 }
 
 void advance_clock(jak::Target& t) {
@@ -240,8 +270,9 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     static MixPose mixed;
     mix(g_ride.rt->skel, mixed);
     const jak::BoardRuntime& rt = *g_ride.rt;
-    const float upper = rt.upper_body.mode == jak::JointModMode::rotate ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
-                                                                         : 0.0f;
+    float upper = rt.upper_body.mode == jak::JointModMode::rotate ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
+                                                                   : 0.0f;
+    spin_pose(mixed, upper, dt);
     g_ride.look.update(mixed, motion, board_spin(), upper, dt);
     const std::vector<JointOut> js = g_ride.look.joints();
     std::vector<openrac_joint_offset> offsets(js.size());
@@ -484,6 +515,7 @@ void end_ride() {
     if (g_pose_out <= 0.0f) mod().hero_set_joints({});
     release_hand();
     g_ride.look.reset();
+    g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
     g_ride.has_yaw = false;
     g_ride.has_shown = false;
     effects().stop_sounds();
