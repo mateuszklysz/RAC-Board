@@ -94,10 +94,7 @@ Push a tag `v<version>` and the build workflow publishes a release the launcher 
 
 - [OpenGOAL](https://github.com/open-goal/jak-project) for the decompiled Jak II code the board is ported from.
 - [OpenRAC](https://github.com/OpenRAC/OpenRAC) for the native Ratchet & Clank and its mod interface.
-- Naughty Dog for the JET-Board and Insomniac Games for Ratchet & Clank.
 
 ## Licence
 
 MIT ([LICENSE](LICENSE)). Files ported from OpenGOAL are also under OpenGOAL's ISC licence ([THIRD_PARTY.md](THIRD_PARTY.md)).
-
-This project is not made by or linked to Naughty Dog, Insomniac Games or Sony.
