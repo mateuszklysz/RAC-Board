@@ -93,6 +93,13 @@ Push a tag `v<version>` and the build workflow publishes a release the launcher 
 
 ## Credits
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/credits-dark.svg">
+    <img src="docs/readme/credits-light.svg" alt="OpenGOAL and OpenRAC, with a heart between them" width="600">
+  </picture>
+</p>
+
 - [OpenGOAL](https://github.com/open-goal/jak-project) for the decompiled Jak II code the board is ported from.
 - [OpenRAC](https://github.com/OpenRAC/OpenRAC) for the native Ratchet & Clank and its mod interface.
 
