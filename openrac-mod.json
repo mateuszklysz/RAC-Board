@@ -4,7 +4,7 @@
   "name": "RAC-Board",
   "version": "0.2.0",
   "author": "Mateusz Kłysz",
-  "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold Circle or Square). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
+  "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold R1 and Cross). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
   "license": "MIT",
   "homepage": "https://github.com/mateuszklysz/rac-board",
   "api": "1.12",
@@ -53,11 +53,87 @@
       "description": "The key that gets on the board and off it."
     },
     {
-      "key": "swap_l1_r1",
-      "name": "Crouch on R1",
-      "type": "bool",
-      "default": true,
-      "description": "On: duck and grabs on R1, spins and flips on L1, as Ratchet crouches on R1. Off: Jak II's buttons, duck and grabs on L1, spins and flips on R1."
+      "key": "trick_button",
+      "name": "Spins and flips",
+      "type": "choice",
+      "default": "r1",
+      "choices": [
+        {
+          "value": "r1",
+          "name": "R1 (as in Jak II)"
+        },
+        {
+          "value": "l2",
+          "name": "L2"
+        },
+        {
+          "value": "r2",
+          "name": "R2"
+        },
+        {
+          "value": "l1",
+          "name": "L1"
+        }
+      ],
+      "description": "Hold it in the air with the stick left or right to spin, up or down to flip."
+    },
+    {
+      "key": "grind_button",
+      "name": "Grind",
+      "type": "choice",
+      "default": "r1x",
+      "choices": [
+        {
+          "value": "r1x",
+          "name": "R1 and Cross together"
+        },
+        {
+          "value": "circle",
+          "name": "Circle (as in Jak II)"
+        },
+        {
+          "value": "square",
+          "name": "Square"
+        },
+        {
+          "value": "l2",
+          "name": "L2"
+        },
+        {
+          "value": "r2",
+          "name": "R2"
+        }
+      ],
+      "description": "Hold it near a rail or an edge to grind it. Circle and Square are the game's weapon and wrench."
+    },
+    {
+      "key": "grab_button",
+      "name": "Duck and grabs",
+      "type": "choice",
+      "default": "l2",
+      "choices": [
+        {
+          "value": "l2",
+          "name": "L2"
+        },
+        {
+          "value": "r2",
+          "name": "R2"
+        },
+        {
+          "value": "l1",
+          "name": "L1 (as in Jak II)"
+        },
+        {
+          "value": "r3",
+          "name": "R3"
+        },
+        {
+          "value": "none",
+          "name": "None"
+        }
+      ],
+      "description": "Hold it to duck (and jump higher), or in the air with the stick for a grab. L1 is the game's first-person view."
     },
     {
       "key": "trick_display",

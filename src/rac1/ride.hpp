@@ -20,6 +20,13 @@ RideStep tick_ride(bool toggle);
 // `last`: the ride's last frame, his animation handed back to the game's.
 void show_ride(bool last);
 void end_ride();
+// The game's first-person view on the board (L1): on the ground, the board stopped, the game's own update runs (its
+// look state, camera and all) while the board waits under him; the ride goes on once it is over.
+// look_start: starts it when it may (true then). look_tick: after the game's update of a frame in
+// it; true when it is over and the ride goes on.
+bool looking();
+bool look_start();
+bool look_tick();
 // A frame off the board: the riding pose eased out over the game's animation after a ride.
 void pose_out_tick();
 // A frame off the board: notes when Ratchet stands on the ground (want-to-board? needs it).

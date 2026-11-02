@@ -51,6 +51,8 @@ struct Ride {
     float spin_lead = 0.0f;  // the upper body's lead into the spin (radians)
     float last_spin = 0.0f;
     float spin_time = 0.0f;  // the grab loop's frame clock
+    bool looking = false;    // in the game's first-person view (look_start)
+    int look_frames = 0;
     // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
     uint32_t start_seq = 0;
     float start_speed = 1.0f;
@@ -506,6 +508,41 @@ void show_ride(bool last) {
     hide_hand(true);
 }
 
+bool looking() { return riding() && g_ride.looking; }
+
+bool look_start() {
+    if (!riding() || g_ride.looking || !playing() || !look_held()) return false;
+    jak::Target& t = *g_ride.t;
+    const jak::StateId st = g_ride.rt->state;
+    if (st != jak::StateId::target_board_stance && st != jak::StateId::target_board_duck_stance) return false;
+    // On the ground only. He stands still in it, as on foot, so the board stops.
+    t.control.transv = jak::Vec{0.0f, 0.0f, 0.0f, 0.0f};
+    g_ride.looking = true;
+    g_ride.look_frames = 0;
+    if (settings().board_camera) camera_stop(true);
+    trace("first-person view");
+    return true;
+}
+
+bool look_tick() {
+    // Over once the button is up and the game has him back in a state of his own on the ground
+    // (its look state ends through a short wait), or after a while whatever it does.
+    ++g_ride.look_frames;
+    openrac_pose pose{};
+    if (!mod().hero_pose(pose)) return false;
+    if (look_held() || (pose.state == 1 || pose.state == 0x1E)) {
+        if (g_ride.look_frames < 60 * 60 * 10) return false;
+    }
+    g_ride.looking = false;
+    // The ride goes on from the state the game left him in, where he stands.
+    interaction().hero_state = pose.state;
+    std::copy(pose.position, pose.position + 3, g_ride.shown);
+    g_ride.has_shown = true;
+    if (settings().board_camera) camera_start(*g_ride.t);
+    trace("first-person view over");
+    return true;
+}
+
 void end_ride() {
     if (!riding()) return;
     camera_stop(false);
@@ -518,6 +555,7 @@ void end_ride() {
     g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
     g_ride.has_yaw = false;
     g_ride.has_shown = false;
+    g_ride.looking = false;
     effects().stop_sounds();
     forget_ground();
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);

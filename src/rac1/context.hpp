@@ -3,6 +3,7 @@
 // What every part of the adapter shares: the mod's API, the disc, the settings and the board's clock.
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -19,7 +20,12 @@ enum class Toggle { up, down, l2r2, r2 };
 struct Settings {
     Toggle toggle = Toggle::up;
     std::vector<int> keys;     // keyboard binds that also toggle the board
-    bool swap_l1_r1 = true;    // duck on R1, spin on L1
+    // The board's buttons (settings trick_button, grind_button, grab_button): the pad buttons, as
+    // Jak II's pad bits, held together for Jak II's R1 (spins, flips), Circle (grind) and L1 (duck,
+    // grabs). 0: none.
+    uint16_t trick = 0;
+    uint16_t grind = 0;
+    uint16_t grab = 0;
     bool trick_display = true; // trick names and points on screen
     bool board_camera = true;  // Jak II's board camera while riding
     bool heat_haze = true;     // the jet's heat haze behind the board

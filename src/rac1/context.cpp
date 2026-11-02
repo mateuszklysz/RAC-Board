@@ -4,7 +4,28 @@
 
 #include <string>
 
+#include "jak/cpad.hpp"
+
 namespace rac1 {
+
+namespace {
+
+// A button setting's value as the pad buttons held for it.
+uint16_t pad_buttons(const std::string& v) {
+    using namespace jak::pad;
+    const uint32_t b = v == "r1x"      ? r1 | x
+                       : v == "r1"     ? r1
+                       : v == "l1"     ? l1
+                       : v == "r2"     ? r2
+                       : v == "l2"     ? l2
+                       : v == "r3"     ? r3
+                       : v == "circle" ? circle
+                       : v == "square" ? square
+                                       : 0u;
+    return static_cast<uint16_t>(b);
+}
+
+} // namespace
 
 Context& ctx() {
     static Context c;
@@ -28,7 +49,9 @@ void load_settings(openrac::Mod& m) {
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
-    s.swap_l1_r1 = m.setting<bool>("swap_l1_r1");
+    s.trick = pad_buttons(m.setting<std::string>("trick_button"));
+    s.grind = pad_buttons(m.setting<std::string>("grind_button"));
+    s.grab = pad_buttons(m.setting<std::string>("grab_button"));
     s.trick_display = m.setting<bool>("trick_display");
     s.board_camera = m.setting<bool>("board_camera");
     s.heat_haze = m.setting<bool>("heat_haze");
