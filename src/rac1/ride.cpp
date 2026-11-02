@@ -535,7 +535,10 @@ RideStep tick_ride(bool toggle) {
     t.camera_local_to_world = camera_matrix(hero, jak_forward_to_yaw(fwd));
     feed_pad(t, toggle);
 
-    deliver_hit(t);
+    // A hit the board takes (its hit state) costs him a hit point, as one on foot does.
+    if (deliver_hit(t) && g_ride.rt->pending && g_ride.rt->pending_state == jak::StateId::target_board_hit) {
+        mod().hero_hurt(1);
+    }
     if (mod().has_world()) touch_creatures(t);
     carry(t);
     jak::board_tick(t);

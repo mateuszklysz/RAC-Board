@@ -53,7 +53,7 @@ Interaction& interaction();
 // on_moby_hit's hook: the game's hits on Ratchet while he rides, kept for the board.
 int on_moby_hit(void* user, const openrac_hit* hit);
 // Gives the board the hit the game posted on Ratchet since the last frame, if any.
-void deliver_hit(jak::Target& t);
+bool deliver_hit(jak::Target& t);
 // Sends 'touched for each creature he rides into (at most once each half second).
 void touch_creatures(jak::Target& t);
 

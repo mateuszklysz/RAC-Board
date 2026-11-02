@@ -154,6 +154,12 @@ int on_moby_hit(void*, const openrac_hit* hit) {
     trace("hit " + std::to_string(hit->victim) + " by " + std::to_string(hit->attacker) + " mask " +
           std::to_string(hit->mask) + " damage " + std::to_string(hit->damage));
     if (interaction().target == nullptr || hit->victim < 0 || hit->victim != mod().figure_slot(-1)) return 0;
+    // His last hit point: the game's own hit, which kills him, as the board cannot (off the board).
+    openrac_pose pose{};
+    if (mod().hero_pose(pose) && pose.health <= 1) {
+        interaction().left = true;
+        return 0;
+    }
     if (!g_hit.pending || hit->damage > g_hit.damage) {
         g_hit.pending = true;
         g_hit.attacker = hit->attacker;
@@ -165,8 +171,8 @@ int on_moby_hit(void*, const openrac_hit* hit) {
 
 // The hit as Jak II's enemies send theirs: 'attack with an attack-info of a new id, its mode and
 // damage, and a vector that shoves him away from where it came from.
-void deliver_hit(jak::Target& t) {
-    if (!g_hit.pending) return;
+bool deliver_hit(jak::Target& t) {
+    if (!g_hit.pending) return false;
     g_hit.pending = false;
     namespace am = jak::attack_mask;
     jak::AttackInfo a;
@@ -192,6 +198,7 @@ void deliver_hit(jak::Target& t) {
     e.num_params = 2;
     e.attack = &a;
     jak::send_event(t, e);
+    return true;
 }
 
 // Each creature he rides into gets the board's 'touched, as Jak II's collision sends it: a spin or
