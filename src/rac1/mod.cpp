@@ -6,14 +6,14 @@
 // ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
 //
 // The adapter's parts (src/rac1):
-//   context   settings, the board's clock, the mod's API
-//   pad       the pad as Jak II reads it, the board's button
-//   world     the level's collision for the board
-//   effects   sounds, particles (board_fx) and the trick combo line
-//   interaction  health, hits on Ratchet, attacks on creatures
-//   hand      the held item, hidden while riding
-//   ride      getting on and off, each frame, Ratchet's pose (ride_pose) and the board
-//   convert   units and axes between the two games
+//   context.*      settings, the board's clock, the mod's API
+//   pad.*          the pad as Jak II reads it, the board's button
+//   ride.*         getting on and off, each frame, drawing Ratchet and the board
+//   interaction.*  health, hits on Ratchet, attacks on creatures
+//   convert.hpp    units and axes between the two games
+//   world/         the level's collision and grind rails for the board, the held item
+//   fx/            sounds, particles and the trick combo line
+//   anim/          Ratchet's riding clips and their secondary motion
 #include "openrac/games/rac1.hpp"
 #include "rac1/context.hpp"
 #include "rac1/fx/effects.hpp"
@@ -73,4 +73,4 @@ int load(openrac::Mod& m) {
 
 } // namespace
 
-OPENRAC_MOD_CPP("rac-board", "0.1.0", load)
+OPENRAC_MOD_CPP("rac-board", "0.2.0", load)

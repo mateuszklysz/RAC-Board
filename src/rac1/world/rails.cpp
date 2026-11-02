@@ -164,9 +164,11 @@ void trace_rails() {
     for (const Rail& r : rails()) {
         const jak::Vec& a = r.points.front();
         const jak::Vec& b = r.points.back();
+        const jak::Vec& m = r.points[r.points.size() / 2];
         trace("rail " + std::to_string(r.points.size()) + " from " + std::to_string(a.x) + "," + std::to_string(a.y) +
               "," + std::to_string(a.z) + " to " + std::to_string(b.x) + "," + std::to_string(b.y) + "," +
-              std::to_string(b.z) + (r.loop ? " loop" : ""));
+              std::to_string(b.z) + " middle " + std::to_string(m.x) + "," + std::to_string(m.y) + "," +
+              std::to_string(m.z) + (r.loop ? " loop" : ""));
     }
 }
 
