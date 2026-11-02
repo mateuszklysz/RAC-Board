@@ -6,8 +6,9 @@
 
 namespace rac1 {
 
-// Finds the hand's pieces near `hero` (game units), by class: once, as the ride starts.
-void find_hand(const float hero[3]);
+// Finds the hand's pieces near `hero` (game units), by class: as the ride starts, and with `add`
+// for an item he takes out while riding (added to those found).
+void find_hand(const float hero[3], bool add = false);
 // Hides or shows the pieces found.
 void hide_hand(bool hidden);
 // Shows them again and forgets them.

@@ -47,6 +47,8 @@ struct Ride {
     float shown[3] = {};  // where Ratchet was put last frame
     bool has_shown = false;
     float pose_in = 0.0f; // how far the riding pose has blended in (0 to 1)
+    int32_t held_item = -1; // the item in his hand, as the hand's pieces were last found for
+    int hand_search = 0;    // frames left to look for a new item's pieces
     float spin_hold = 0.0f;  // how far the spin's grab of the board has blended in (0 to 1)
     float spin_lead = 0.0f;  // the upper body's lead into the spin (radians)
     float last_spin = 0.0f;
@@ -479,6 +481,8 @@ bool try_start_ride() {
     }
 
     find_hand(pose.position);
+    g_ride.held_item = pose.item;
+    g_ride.hand_search = 0;
     if (settings().trace && mod().has_world()) {
         for (const openrac_moby& m : mod().moby_list()) {
             if (!(m.flags & OPENRAC_MOBY_CREATURE)) continue;
@@ -581,6 +585,16 @@ void show_ride(bool last) {
         hide_guide();
     } else {
         show_guide(pose);
+    }
+    // An item taken out while he rides (a quick select) is put away too: its pieces found again.
+    // Its moby can come a few frames after the switch, so it is looked for over a quarter second.
+    if (pose.item != g_ride.held_item) {
+        g_ride.held_item = pose.item;
+        g_ride.hand_search = 15;
+    }
+    if (g_ride.hand_search > 0) {
+        --g_ride.hand_search;
+        find_hand(pose.position, true);
     }
     hide_hand(true);
 }

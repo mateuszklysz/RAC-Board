@@ -92,7 +92,11 @@ constexpr int kHeroRailLand = 13;
 constexpr int kHeroGrindLoop = 0;
 
 // Jak's jingles for a trick and its points: none in Ratchet's game, so none here.
-bool silent(const char* name) { return std::strcmp(name, "do-trick") == 0 || std::strcmp(name, "trick-score") == 0; }
+// Left out: the trick's own cues, and the bank's hiss on a turn or a spin (user decision).
+bool silent(const char* name) {
+    return std::strcmp(name, "do-trick") == 0 || std::strcmp(name, "trick-score") == 0 ||
+           std::strcmp(name, "board-bank") == 0;
+}
 
 int hero_sound(const char* name) {
     for (const HeroSound& h : kHeroSounds) {
@@ -125,6 +129,7 @@ uint32_t Effects::sound_play(const char* name, float volume, float pitch) {
 }
 
 void Effects::sound_loop(const char* name, uint32_t id, float volume, float pitch) {
+    if (silent(name)) return;
     // The rail: Ratchet's own landing on one, then his grind's loop until it stops.
     if (std::strcmp(name, "board-rail") == 0) {
         if (m_hero_voices.count(id) == 0) {
