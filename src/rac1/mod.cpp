@@ -43,10 +43,10 @@ void hero_update(const openrac::Original<void()>& original) {
         }
         toggle = false; // the press that got on is not also the one that gets off
     }
-    const bool on = tick_ride(toggle);
-    show_ride();
-    if (!on) {
-        // Off the board: the game's update goes on from where the board left Ratchet.
+    const RideStep step = tick_ride(toggle);
+    if (step != RideStep::taken) show_ride();
+    if (step != RideStep::riding) {
+        // Off the board: the game's update goes on from where the board (or the game) left Ratchet.
         end_ride();
         original();
     }

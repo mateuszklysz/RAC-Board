@@ -8,8 +8,8 @@
 // Jak II's proportions to the rider. Time is not scaled. Ratchet & Clank
 // is z-up with x right and y forward; Jak II is y-up with x right and z forward. The map swaps y
 // and z, so right, up and forward stay right, up and forward on screen: the board turns the way
-// the stick points. The swap is a mirror, which turns a triangle's winding round (rac_board.cpp,
-// RacWorld, keeps the corners and turns the normal outward).
+// the stick points. The swap is a mirror, which turns a triangle's winding round (world/world.cpp
+// keeps the corners and turns the normal outward).
 #pragma once
 
 #include <cmath>

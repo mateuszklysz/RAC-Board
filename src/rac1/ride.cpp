@@ -22,6 +22,7 @@
 #include "rac1/fx/effects.hpp"
 #include "rac1/interaction.hpp"
 #include "rac1/pad.hpp"
+#include "rac1/world/ground.hpp"
 #include "rac1/world/hand.hpp"
 #include "rac1/world/rails.hpp"
 #include "rac1/world/world.hpp"
@@ -42,6 +43,8 @@ struct Ride {
     float last_yaw = 0.0f;
     float last_vel[3] = {};
     bool has_yaw = false;
+    float shown[3] = {};  // where Ratchet was put last frame
+    bool has_shown = false;
 };
 Ride g_ride;
 World g_world;
@@ -170,6 +173,8 @@ void show_ratchet(openrac_pose& pose, float yaw) {
     pose.frame = 0;
     pose.anim_speed = 1.0f;
     mod().hero_set_pose(pose);
+    std::copy(pose.position, pose.position + 3, g_ride.shown);
+    g_ride.has_shown = true;
 
     const float dt = frame_seconds();
     float rate = 0.0f;
@@ -331,6 +336,7 @@ bool try_start_ride() {
                   std::to_string(m.position[2]));
         }
     }
+    trace("fall height " + std::to_string(fall_death_height()));
     trace_rails();
     g_ride.t = std::move(t);
     g_ride.rt = std::move(rt);
@@ -341,7 +347,28 @@ bool try_start_ride() {
     return true;
 }
 
-bool tick_ride(bool toggle) {
+// Whether the game took Ratchet over while he rode: a scene, a vendor, a death or a move from its
+// own code changes his state or puts him somewhere else. The board then lets him go.
+bool game_took_over() {
+    openrac_pose pose{};
+    if (!mod().hero_pose(pose)) return true;
+    if (pose.state != interaction().hero_state) {
+        trace("hero state " + std::to_string(pose.state) + " from the game: off the board");
+        return true;
+    }
+    if (g_ride.has_shown) {
+        const float dx = pose.position[0] - g_ride.shown[0], dy = pose.position[1] - g_ride.shown[1],
+                    dz = pose.position[2] - g_ride.shown[2];
+        if (dx * dx + dy * dy + dz * dz > 1.0f) {
+            trace("moved by the game: off the board");
+            return true;
+        }
+    }
+    return false;
+}
+
+RideStep tick_ride(bool toggle) {
+    if (game_took_over()) return RideStep::taken;
     jak::Target& t = *g_ride.t;
     advance_clock(t);
     float hero[3];
@@ -353,14 +380,29 @@ bool tick_ride(bool toggle) {
 
     deliver_hit(t);
     if (mod().has_world()) touch_creatures(t);
+    carry(t);
     jak::board_tick(t);
+    float feet[3];
+    to_game_point(t.control.trans, feet);
+    const Ground ground = ground_under(feet);
+    note_ground(t, ground);
 
     if (g_ride.rt->state != g_ride.traced) {
         g_ride.traced = g_ride.rt->state;
         trace(std::string("state ") + jak::state_name(g_ride.traced) + " height " +
               std::to_string(t.control.trans.y / kUnit));
     }
-    return !interaction().left;
+    if (feet[2] < fall_death_height() && !(t.control.status & jak::cstat::on_surface)) {
+        // Fallen out of the level: the game's own fall to death takes over.
+        trace("below the fall height: off the board");
+        return RideStep::left;
+    }
+    if (ground.found && game_hazard(ground.surface) && (t.control.status & jak::cstat::on_surface)) {
+        // Water, a death floor or a sinking liquid: the game's own rules take over, as on foot.
+        trace("ground hazard " + std::to_string(ground.surface) + ": off the board");
+        return RideStep::left;
+    }
+    return interaction().left ? RideStep::left : RideStep::riding;
 }
 
 void show_ride() {
@@ -383,7 +425,9 @@ void end_ride() {
     release_hand();
     g_ride.look.reset();
     g_ride.has_yaw = false;
+    g_ride.has_shown = false;
     effects().stop_sounds();
+    forget_ground();
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
     interaction().target = nullptr;
     interaction().left = false;

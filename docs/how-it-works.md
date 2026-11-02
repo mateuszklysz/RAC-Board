@@ -22,7 +22,7 @@ A small adapter connects it to the game.
 | `src/jak/math` | Jak II's maths |
 | `src/board` | The board itself: states, physics, tricks, hits |
 | `src/rac1` | The adapter to Ratchet & Clank: pad, ride, health, hits |
-| `src/rac1/world` | The level's collision and grind rails, the held item |
+| `src/rac1/world` | The level's collision, the ground under the board, grind rails, the held item |
 | `src/rac1/fx` | Sounds, particles and the trick line |
 | `src/rac1/anim` | Ratchet's riding clips |
 | `tests` | Unit tests for the ported code |
@@ -57,3 +57,13 @@ The board finds the bar's top edge and grinds it, as it would in Jak II.
   (Kerwan, Blarg, Batalia, Oltanis, Kalebo III, Veldin 2).
 - Closed rails (loops) join their last point to their first, as the game does.
 - Hold Circle or Square to grab a rail, as in Jak II.
+
+## The game's own rules
+
+The board hands Ratchet back to the game when the game should decide (`src/rac1/ride.cpp`):
+
+- Water, death floors and sinking liquids under the board (`src/rac1/world/ground.cpp`).
+- A fall below the level's fall height.
+- The game moving Ratchet or changing his state (cutscenes, teleports).
+
+On a moving platform the board moves and turns with the platform's moby.

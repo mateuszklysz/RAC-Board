@@ -35,18 +35,19 @@ See [glitches.md](glitches.md).
 | Health | Ratchet's own nanotech. A hit while riding takes his health like Jak's |
 | Hits on enemies | The board's spin and touch attacks hit the game's creatures |
 | Sidekick | Clank stays on Ratchet's back, as Daxter stays on Jak's shoulder |
+| Water, death floors, deep falls | Ratchet gets off and the game's own rules run (he swims, sinks or respawns), as on foot |
+| Game scenes | When the game moves Ratchet or changes his state (a cutscene, a teleport), he gets off |
+| Moving platforms | The board moves and turns with the platform it stands on |
 
 ## Missing, and why
 
 | Missing | Why |
 |---|---|
-| Water | The mod interface gives no water height. The board cannot start in water |
 | Rumble | OpenRAC does not drive the pad's motors for Ratchet & Clank yet |
 | Board camera | Jak II moves its camera for the board (halfpipes, rails). The mod cannot steer the game's camera, so the game's own camera follows |
 | Board music | Jak II switches the sound bank and music. There is no music to switch to |
 | Heat haze particles | OpenRAC has no screen distortion effect for mods |
-| Riding moving platforms | The collision the mod gets is the level's fixed collision only |
 | Jak's voice ("oof" on a hit) | No sound from either game's disc is shipped |
-| Ice, tar, quicksand surfaces | Ratchet & Clank's collision has no Jak II materials to map |
+| Ice and tar surfaces | Ratchet & Clank's slippery ground has no Jak II material to map |
 | Trick-point pickups and races | These belong to Jak II's levels, not to the board |
 | Board grenade, cutscene clones | Jak II story features with no place in Ratchet & Clank |

@@ -9,8 +9,13 @@ bool riding();
 // Gets on when want-to-board? says yes (the button pressed, Ratchet free and with room); false
 // otherwise, and the game's update runs as usual.
 bool try_start_ride();
-// One frame on the board; false once the board's code has left for one of the target's own states.
-bool tick_ride(bool toggle);
+enum class RideStep {
+    riding, // still on the board
+    left,   // the board's code got off (or the board met one of the game's hazards)
+    taken,  // the game took Ratchet over (a scene, a death, a move of its own): he stays where it put him
+};
+// One frame on the board.
+RideStep tick_ride(bool toggle);
 // Ratchet where the target is, in his riding pose, and the board under his feet.
 void show_ride();
 void end_ride();
