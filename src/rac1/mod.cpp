@@ -42,6 +42,7 @@ void hero_update(const openrac::Original<void()>& original) {
         if (!(toggle && try_start_ride())) {
             note_on_foot();
             original();
+            pose_out_tick();
             return;
         }
         toggle = false; // the press that got on is not also the one that gets off
@@ -53,6 +54,7 @@ void hero_update(const openrac::Original<void()>& original) {
         // Off the board: the game's update goes on from where the board (or the game) left Ratchet.
         end_ride();
         original();
+        pose_out_tick();
     }
 }
 

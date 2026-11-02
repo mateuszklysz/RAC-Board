@@ -19,6 +19,8 @@ RideStep tick_ride(bool toggle);
 // Ratchet where the target is, in his riding pose, and the board under his feet.
 void show_ride();
 void end_ride();
+// A frame off the board: the riding pose eased out over the game's animation after a ride.
+void pose_out_tick();
 // A frame off the board: notes when Ratchet stands on the ground (want-to-board? needs it).
 void note_on_foot();
 // The level the ride started in is gone.

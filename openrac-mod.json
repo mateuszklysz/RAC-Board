@@ -60,7 +60,7 @@
       "name": "Trick names and points",
       "type": "bool",
       "default": true,
-      "description": "Shows each combo's tricks and points at the top of the picture, as OpenGOAL's Jak II does."
+      "description": "Shows each combo's tricks and points in the game's HUD, in its own font, low in the middle of the screen."
     },
     {
       "key": "board_camera",

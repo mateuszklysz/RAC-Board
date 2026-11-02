@@ -31,6 +31,12 @@ bool evaluated_now(const JointControlChannel& ch, const AnimClock& clk) {
     return static_cast<int64_t>(ch.eval_time) == clk.now;
 }
 
+// The channels in use now. GOAL's loops walk to the end they read when they started, so after a
+// blend finished and its channels moved down they go on into stale copies past it; a stale blend
+// finishing again moves root-channel before the array, and the next ja writes outside it. The
+// loops here stop at the channels in use instead: the same channels run, nothing past them.
+int live_channels(const JointControl& jc) { return static_cast<int>(jc.active_channels + jc.float_channels); }
+
 } // namespace
 
 // The num-funcs (process-drawable-h.gc): num-func-none, -+!, --!, -loop!, -seek!, -blend-in!,
@@ -136,6 +142,7 @@ void joint_control_reset(JointControl& jc, int blend) {
         } else {
             jc.root = jc.root - (s5 + 1);
         }
+        if (jc.root < 0) jc.root = 0; // never before the array (see live_channels)
         const int total = static_cast<int>(jc.active_channels + jc.float_channels);
         // qmem-copy<-! channel[0..] from channel[v1..], (total - s5) channels.
         for (int i = 0; i < total - s5; i++) {
@@ -279,7 +286,7 @@ int ja_group_size(const JointControl& jc) {
 // ja-eval (process-drawable.gc): the root group and above, once a frame.
 void ja_eval(JointControl& jc, const AnimClock& clk) {
     const int end = static_cast<int>(jc.active_channels + jc.float_channels);
-    for (int i = jc.root; i < end; i++) {
+    for (int i = jc.root; i < end && i < live_channels(jc); i++) {
         if (jc.channel[i].command & jcc::command_4) {
             continue;
         }
@@ -312,6 +319,7 @@ void evaluate_joint_control(JointControl& jc, const AnimClock& clk) {
     while (s4 != jc.active_channels + jc.float_channels) {
         s4 = jc.active_channels + jc.float_channels;
         for (int s2 = 0; s2 < static_cast<int>(s4); s2++) {
+            if (s2 >= live_channels(jc)) break; // a blend that finished took channels away
             JointControlChannel& ch = jc.channel[s2];
             if ((ch.command & jcc::thirty_two) && !evaluated_now(ch, clk)) {
                 joint_control_channel_eval(jc, s2, clk);

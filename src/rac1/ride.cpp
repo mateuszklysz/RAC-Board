@@ -46,10 +46,37 @@ struct Ride {
     bool has_yaw = false;
     float shown[3] = {};  // where Ratchet was put last frame
     bool has_shown = false;
+    float pose_in = 0.0f; // how far the riding pose has blended in (0 to 1)
 };
 Ride g_ride;
 World g_world;
 int g_board_prop = -1;
+
+// The riding pose eased in as he gets on and out after he gets off, over these seconds, so his body
+// does not jump between the game's animation and the board's pose.
+constexpr float kPoseIn = 0.2f;
+constexpr float kPoseOut = 0.3f;
+std::vector<openrac_joint_offset> g_last_offsets; // the riding pose's last frame
+float g_pose_out = 0.0f;                         // seconds of easing out left
+
+// The offsets `w` of the way from none (0) to all of them (1): rotations along the shorter arc,
+// translations in a line.
+std::vector<openrac_joint_offset> scaled(std::vector<openrac_joint_offset> js, float w) {
+    const float e = w * w * (3.0f - 2.0f * w);
+    for (openrac_joint_offset& j : js) {
+        float* q = j.rotation;
+        const float s = q[3] < 0.0f ? -1.0f : 1.0f; // the identity's side
+        float n = 0.0f;
+        for (int k = 0; k < 4; ++k) {
+            q[k] = (k == 3 ? 1.0f - e : 0.0f) + e * s * q[k];
+            n += q[k] * q[k];
+        }
+        n = n > 1e-12f ? 1.0f / std::sqrt(n) : 1.0f;
+        for (int k = 0; k < 4; ++k) q[k] *= n;
+        for (float& v : j.translation) v *= e;
+    }
+    return js;
+}
 
 // What want-to-board? reads off a board-info that outlives the ride: the last frame on the board,
 // whether there was a ride yet, and the last frame Ratchet stood on the ground since.
@@ -218,7 +245,9 @@ void show_ratchet(openrac_pose& pose, float yaw) {
         std::memcpy(offsets[i].rotation, js[i].q, sizeof js[i].q);
         std::memcpy(offsets[i].translation, js[i].t, sizeof js[i].t);
     }
-    mod().hero_set_joints(offsets);
+    g_last_offsets = offsets;
+    g_ride.pose_in = std::min(1.0f, g_ride.pose_in + dt / kPoseIn);
+    mod().hero_set_joints(g_ride.pose_in < 1.0f ? scaled(offsets, g_ride.pose_in) : offsets);
 }
 
 // The board: where the clip has it (its turn and place in his model space: x his heading, y his
@@ -272,6 +301,18 @@ void show_board(const openrac_pose& pose, float yaw) {
 } // namespace
 
 bool riding() { return g_ride.t != nullptr; }
+
+void pose_out_tick() {
+    if (g_pose_out <= 0.0f) return;
+    g_pose_out -= frame_seconds();
+    if (g_pose_out <= 0.0f) {
+        g_pose_out = 0.0f;
+        g_last_offsets.clear();
+        mod().hero_set_joints({});
+        return;
+    }
+    mod().hero_set_joints(scaled(g_last_offsets, g_pose_out / kPoseOut));
+}
 
 bool ride_level_changed() { return riding() && mod().play_status().loads != g_ride.loads; }
 
@@ -343,6 +384,9 @@ bool try_start_ride() {
     g_ride.rt = std::move(rt);
     g_ride.loads = mod().play_status().loads;
     g_ride.traced = jak::StateId::none;
+    // Back on while the last ride's pose eases out: on from as far as it is.
+    g_ride.pose_in = g_pose_out / kPoseOut;
+    g_pose_out = 0.0f;
     g_rode = true;
     jak::go(*g_ride.t, jak::StateId::target_board_start);
     if (settings().board_camera) camera_start(*g_ride.t);
@@ -426,7 +470,9 @@ void end_ride() {
     if (!riding()) return;
     camera_stop(false);
     g_board_time = g_ride.t->board->board_time;
-    mod().hero_set_joints({});
+    // The riding pose eases out over the game's animation (pose_out_tick).
+    g_pose_out = g_last_offsets.empty() ? 0.0f : kPoseOut;
+    if (g_pose_out <= 0.0f) mod().hero_set_joints({});
     release_hand();
     g_ride.look.reset();
     g_ride.has_yaw = false;

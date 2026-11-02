@@ -35,6 +35,7 @@ class Effects : public jak::Effects {
 
   private:
     void show_combo();
+    void draw_combo();
     int sound(const char* name);
 
     BoardFx m_fx;
@@ -47,6 +48,9 @@ class Effects : public jak::Effects {
     float m_points = 0.0f;
     bool m_in_combo = false;
     float m_shown = 0.0f; // seconds the line stays after the combo ends
+    std::string m_line;   // the tricks, as render-combo writes them
+    std::string m_score;  // and the points
+    bool m_drawn = false; // whether the HUD has the lines now
 };
 
 Effects& effects();

@@ -8,7 +8,10 @@
 namespace jak {
 
 namespace {
-alignas(16) uint8_t g_arena[kArenaSize];
+// Room past the stack's top: the MIPS loops (mips2c.cpp, probe-using-spheres) load the quadword
+// after the last one they use before they test their count, as the console's code does.
+constexpr uint32_t kArenaSlack = 64;
+alignas(16) uint8_t g_arena[kArenaSize + kArenaSlack];
 bool g_arena_ready = false;
 } // namespace
 

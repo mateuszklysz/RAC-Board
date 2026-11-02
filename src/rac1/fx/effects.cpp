@@ -5,7 +5,10 @@
 // English texts (trick-board-*).
 #include "rac1/fx/effects.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <vector>
 
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
@@ -120,17 +123,50 @@ void Effects::show_combo() {
         line += kTrickNames[t];
         if (times > 1) line += " x " + std::to_string(times);
     }
-    if (m_points > 0.0f) line += "    " + std::to_string(static_cast<int>(m_points));
-    mod().play_notice(line);
+    // The HUD's line holds 63 characters: a long combo keeps its last tricks.
+    constexpr std::size_t kMost = 60;
+    if (line.size() > kMost) {
+        std::size_t cut = line.find(" + ", line.size() - kMost + 4);
+        line = "... " + (cut == std::string::npos ? line.substr(line.size() - kMost + 4) : line.substr(cut + 1));
+    }
+    m_line = line;
+    m_score = m_points > 0.0f ? std::to_string(static_cast<int>(m_points)) : std::string();
+    draw_combo();
+}
+
+// The combo in the game's HUD, in its own font, low in the middle of the screen as Jak II has it:
+// the tricks, the points under them, fading out at the end of the time the line stays.
+void Effects::draw_combo() {
+    const bool shown = settings().trick_display && (m_in_combo || m_shown > 0.0f) && !m_line.empty();
+    if (!shown) {
+        if (m_drawn) mod().hud_text_set({});
+        m_drawn = false;
+        return;
+    }
+    const float fade = m_in_combo ? 1.0f : std::min(1.0f, m_shown / 0.5f);
+    const auto a = static_cast<uint8_t>(255.0f * fade + 0.5f);
+    std::vector<openrac_hud_text> lines;
+    const auto add = [&](const std::string& text, float y, float scale, uint8_t r, uint8_t g, uint8_t b) {
+        if (text.empty()) return;
+        openrac_hud_text l{};
+        std::snprintf(l.text, sizeof l.text, "%s", text.c_str());
+        l.x = 0.5f;
+        l.y = y;
+        l.scale = scale;
+        l.rgba[0] = r, l.rgba[1] = g, l.rgba[2] = b, l.rgba[3] = a;
+        l.flags = OPENRAC_HUD_SHADOW;
+        lines.push_back(l);
+    };
+    add(m_line, 0.76f, 0.8f, 255, 255, 255);
+    add(m_score, 0.83f, 1.25f, 255, 190, 40);
+    m_drawn = mod().hud_text_set(lines);
 }
 
 void Effects::update() {
     m_fx.haze = settings().heat_haze && mod().has_camera();
     m_fx.update(mod(), frame_seconds());
-    if (m_shown > 0.0f) {
-        m_shown -= frame_seconds();
-        if (m_shown <= 0.0f && !m_in_combo) mod().play_notice("");
-    }
+    if (m_shown > 0.0f) m_shown = std::max(0.0f, m_shown - frame_seconds());
+    if (m_drawn || m_in_combo || m_shown > 0.0f) draw_combo();
 }
 
 } // namespace rac1
