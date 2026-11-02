@@ -6,8 +6,6 @@
   </picture>
 </h1>
 
-<br>
-
 <p align="center">
   <strong>Jak II's JET-Board in Ratchet &amp; Clank.</strong><br>
   Jak II's own board code, ported from OpenGOAL, running in OpenRAC's native port.
