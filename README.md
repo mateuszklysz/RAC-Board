@@ -34,13 +34,23 @@
 
 ## What is it?
 
-A mod that gives Ratchet Jak II's JET-Board.
+A mod that gives Ratchet Jak II's JET-Board. Press **D-pad Up** and he jumps on, Clank still on his back. Press it again to get off. Everything else stays Ratchet & Clank: the levels, enemies, bolts and story.
+
+**How it rides**
 
 - **Jak II's real board logic.** The states, physics, tricks and collision are Jak II's code, ported line by line.
 - **Its quirks too.** Hovers, extended flips and the other speedrun glitches work as in Jak II.
 - **Grind any rail.** Every grind rail in the game can be ridden, plus any edge Jak could grind.
 - **Tricks and combos.** Spins, flips, grabs, boosts, with Jak II's names and points on screen.
+
+**How it fits the game**
+
 - **Ratchet's own style.** He rides in clips made for him, with Clank on his back.
+- **Ratchet's sounds.** Jumps, whooshes, rail landings and the grind loop use the game's own sounds.
+- **Hits still count.** Enemies and hazards cost health on the board. Water, deep liquids and death floors hand Ratchet back to the game, so the rules stay the same.
+- **The game's camera.** The board uses Ratchet & Clank's follow camera, and other camera mods keep working once you step off.
+- **Your buttons.** Tricks, grind and grabs can be moved to other buttons in the mod's settings.
+- **PAL and NTSC-U.** Both versions, on Windows, Linux, macOS and Android.
 - **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools.
 
 <p align="center">
