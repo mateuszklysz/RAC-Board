@@ -51,7 +51,7 @@ A mod that gives Ratchet Jak II's JET-Board.
 1. Get [OpenRAC](https://github.com/OpenRAC/OpenRAC) with mod interface 1.12 or newer.
 2. In the launcher, open the **Mods** tab.
 3. Paste `https://github.com/mateuszklysz/rac-board` and install.
-4. Play Ratchet & Clank (PAL or NTSC-U) and press **D-pad Down** to get on.
+4. Play Ratchet & Clank (PAL or NTSC-U) and press **D-pad Up** to get on.
 
 ## Controls
 
@@ -59,7 +59,7 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 
 | Action | Pad | Jak II |
 |---|---|---|
-| Get on and off | D-pad Down (or L2+R2, or R2) | R2 |
+| Get on and off | D-pad Up (or D-pad Down, L2+R2, or R2) | R2 |
 | Jump (hold for higher) | Cross | Cross |
 | Duck, duck jump, grabs in the air | R1 | L1 |
 | Spin (stick left or right), flip (stick up or down) | L1 | R1 |

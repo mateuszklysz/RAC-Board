@@ -14,7 +14,10 @@ Context& ctx() {
 void load_settings(openrac::Mod& m) {
     Settings& s = ctx().settings;
     const std::string button = m.setting<std::string>("board_button");
-    s.toggle = button == "r2" ? Toggle::r2 : (button == "l2r2" ? Toggle::l2r2 : Toggle::down);
+    s.toggle = button == "r2"     ? Toggle::r2
+               : button == "l2r2" ? Toggle::l2r2
+               : button == "down" ? Toggle::down
+                                  : Toggle::up;
     s.keys.clear();
     const std::string keys = m.setting<std::string>("board_key");
     size_t start = 0;

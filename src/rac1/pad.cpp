@@ -25,6 +25,7 @@ bool g_was_held = false;
 
 bool toggle_held(uint16_t held) {
     switch (settings().toggle) {
+    case Toggle::up: return held & jak::pad::up;
     case Toggle::down: return held & jak::pad::down;
     case Toggle::r2: return held & jak::pad::r2;
     case Toggle::l2r2: return (held & jak::pad::l2) && (held & jak::pad::r2);
@@ -34,6 +35,7 @@ bool toggle_held(uint16_t held) {
 
 uint16_t toggle_bits() {
     switch (settings().toggle) {
+    case Toggle::up: return jak::pad::up;
     case Toggle::down: return jak::pad::down;
     case Toggle::r2: return jak::pad::r2;
     case Toggle::l2r2: return jak::pad::l2 | jak::pad::r2;
@@ -62,9 +64,10 @@ void on_pad(int port, uint8_t* report, int size) {
     std::memcpy(g_pad.sticks, report + 2, 4);
     std::memcpy(g_pad.pressure, report + 6, 12);
     g_pad.valid = true;
-    // The board's button is the mod's: in play the game does not see it (D-pad Down at any time,
+    // The board's button is the mod's: in play the game does not see it (D-pad Up or Down at any time,
     // R2 or L2 and R2 only while riding, so strafing still works on foot). Menus keep it.
-    const bool take = settings().toggle == Toggle::down ? playing() : riding();
+    const bool dpad = settings().toggle == Toggle::up || settings().toggle == Toggle::down;
+    const bool take = dpad ? playing() : riding();
     if (take && (settings().toggle != Toggle::l2r2 || toggle_held(g_pad.held))) {
         const uint16_t bits = toggle_bits();
         report[0] |= static_cast<uint8_t>(bits & 0xFF);

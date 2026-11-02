@@ -13,11 +13,11 @@
 namespace rac1 {
 
 // The button that gets on and off the board (setting board_button).
-enum class Toggle { down, l2r2, r2 };
+enum class Toggle { up, down, l2r2, r2 };
 
 // The mod's settings (openrac-mod.json).
 struct Settings {
-    Toggle toggle = Toggle::down;
+    Toggle toggle = Toggle::up;
     std::vector<int> keys;     // keyboard binds that also toggle the board
     bool swap_l1_r1 = true;    // duck on R1, spin on L1
     bool trick_display = true; // trick names and points on screen

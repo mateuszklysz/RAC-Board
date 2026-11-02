@@ -28,7 +28,7 @@ See [glitches.md](glitches.md).
 | Size | Jak II's world is scaled to Ratchet (0.42), so the board feels the same for his size |
 | Ground | The level's collision from OpenRAC. Every surface counts as plain ground (no ice, tar or sand) |
 | Rails | The game's grind rails become thin bars the board can grind |
-| Buttons | Get on and off with D-pad Down (or L2+R2, or R2). Duck and spin can swap (L1/R1) |
+| Buttons | Get on and off with D-pad Up (or D-pad Down, L2+R2, or R2). Duck and spin can swap (L1/R1) |
 | Animations | Our own clips for Ratchet, made in the style of Jak's and mixed by Jak II's joint control |
 | Effects | Particles and sounds made for the mod, shaped after Jak II's |
 | Heat haze | The air behind the jet wobbles (part 432), drawn with OpenRAC's heat haze |

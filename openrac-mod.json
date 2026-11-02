@@ -23,8 +23,12 @@
       "key": "board_button",
       "name": "Board on and off",
       "type": "choice",
-      "default": "down",
+      "default": "up",
       "choices": [
+        {
+          "value": "up",
+          "name": "D-pad Up"
+        },
         {
           "value": "down",
           "name": "D-pad Down"
@@ -66,7 +70,7 @@
       "key": "board_camera",
       "name": "Board camera",
       "type": "bool",
-      "default": true,
+      "default": false,
       "description": "On: Jak II's camera follows the board, as it does in Jak II. Off: the game's own camera."
     },
     {
