@@ -120,6 +120,11 @@ void Effects::sound_stop(uint32_t id) {
     m_voices.erase(it);
 }
 
+void Effects::pause_sounds() {
+    for (const auto& v : m_voices) mod().sound_stop(v.second);
+    m_voices.clear();
+}
+
 void Effects::stop_sounds() {
     for (const auto& v : m_voices) mod().sound_stop(v.second);
     m_voices.clear();

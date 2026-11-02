@@ -22,6 +22,9 @@ class Effects : public jak::Effects {
     void trick(jak::BoardTricks trick, float points) override;
     void combo_end() override;
     // The ride is over: a combo still running ends (its line fades out).
+    // The pause menu: the board's own sounds stop (its loops start again with the next frame that
+    // plays them); Ratchet's, the game's, pause with the game.
+    void pause_sounds();
     void ride_over() {
         if (m_in_combo) combo_end();
     }

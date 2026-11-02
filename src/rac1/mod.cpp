@@ -30,7 +30,10 @@ using namespace rac1;
 void hero_update(const openrac::Original<void()>& original) {
     // Under the pause menu (the port runs the level on under it) the board stands still, as the
     // game's world does.
-    if (riding() && mod().play_status().phase == OPENRAC_PLAY_MENU) return;
+    if (riding() && mod().play_status().phase == OPENRAC_PLAY_MENU) {
+        effects().pause_sounds();
+        return;
+    }
     ctx().clock += frame_ticks();
     bool toggle = toggle_pressed();
     if (ride_level_changed()) {
