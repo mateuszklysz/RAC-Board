@@ -57,7 +57,7 @@ The board finds the bar's top edge and grinds it, as it would in Jak II.
 - The rails come from the level's own rail table, so every level with rails works
   (Kerwan, Blarg, Batalia, Oltanis, Kalebo III, Veldin 2).
 - Closed rails (loops) join their last point to their first, as the game does.
-- Hold Circle or Square to grab a rail, as in Jak II.
+- Hold R1 or R2 with Cross to grab a rail (the grind_button setting; Jak II's Circle is an option).
 
 ## The game's own rules
 

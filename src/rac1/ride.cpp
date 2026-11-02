@@ -53,7 +53,13 @@ struct Ride {
     float spin_lead = 0.0f;  // the upper body's lead into the spin (radians)
     float last_spin = 0.0f;
     float spin_time = 0.0f;  // the grab loop's frame clock
-    // The first-person view (L1): on, and the right stick's look about the heading (radians).
+    // A spin's end, eased: Jak's board stops its twist and takes the facing in one frame (a jump in
+    // how he is drawn); the drawn turn carries on from where it was and settles on the new facing.
+    float spin_carry = 0.0f;   // radians the drawn spin still differs from the board's
+    float spin_carry_v = 0.0f; // its speed (radians a second)
+    float drawn_turn = 0.0f;   // his drawn facing last frame (heading + spin + carry)
+    float drawn_rate = 0.0f;   // how fast that turned (radians a second)
+    bool spinning = false;     // the board's twist was on last frame
     // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
     uint32_t start_seq = 0;
     float start_speed = 1.0f;
@@ -157,6 +163,13 @@ jak::Mat camera_matrix(const float hero[3], float hero_yaw) {
 }
 
 float board_spin();
+
+// An angle wrapped to (-pi, pi].
+float wrap_pi(float a) {
+    while (a > kPi) a -= kTwoPi;
+    while (a <= -kPi) a += kTwoPi;
+    return a;
+}
 
 // Ratchet's own touch on the spin (Jak spins stiff in his jump pose): as the board turns he crouches
 // and reaches down to hold its nose (the nosegrab's loop, blended in by the spin's speed), and his
@@ -262,12 +275,30 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     g_ride.has_shown = true;
 
     const float dt = frame_seconds();
+    const float spin = board_spin();
+    const bool spin_ended = g_ride.has_yaw && g_ride.spinning && spin == 0.0f;
+    if (spin_ended) {
+        // The turn goes on at the speed it had, from where it was drawn.
+        g_ride.spin_carry_v = g_ride.drawn_rate;
+        g_ride.spin_carry = wrap_pi(g_ride.drawn_turn + g_ride.drawn_rate * dt - yaw);
+    } else if (dt > 0.0f && (g_ride.spin_carry != 0.0f || g_ride.spin_carry_v != 0.0f)) {
+        // A critically damped spring back to the board's facing (about 0.2 s), stepped exactly.
+        constexpr float w = 25.0f;
+        const float x0 = g_ride.spin_carry, v0 = g_ride.spin_carry_v, e = std::exp(-w * dt);
+        g_ride.spin_carry = (x0 + (v0 + w * x0) * dt) * e;
+        g_ride.spin_carry_v = (v0 - w * (v0 + w * x0) * dt) * e;
+        if (std::fabs(g_ride.spin_carry) < 1e-4f && std::fabs(g_ride.spin_carry_v) < 1e-3f) {
+            g_ride.spin_carry = g_ride.spin_carry_v = 0.0f;
+        }
+    }
+    const float drawn = yaw + spin + g_ride.spin_carry;
+    g_ride.drawn_rate = g_ride.has_yaw && dt > 0.0f ? wrap_pi(drawn - g_ride.drawn_turn) / dt : 0.0f;
+    g_ride.drawn_turn = drawn;
+    g_ride.spinning = spin != 0.0f;
     float rate = 0.0f;
-    if (g_ride.has_yaw) {
-        float d = yaw - g_ride.last_yaw;
-        while (d > kPi) d -= kTwoPi;
-        while (d < -kPi) d += kTwoPi;
-        rate = d / dt;
+    // (The heading's one-frame jump at a spin's end is not a turn: no lean for it.)
+    if (g_ride.has_yaw && !spin_ended) {
+        rate = wrap_pi(yaw - g_ride.last_yaw) / dt;
     }
     // How the board moves, in his heading's frame, for the secondary motion.
     Motion motion;
@@ -295,7 +326,7 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     float upper = rt.upper_body.mode == jak::JointModMode::rotate ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
                                                                    : 0.0f;
     spin_pose(mixed, upper, dt);
-    g_ride.look.update(mixed, motion, board_spin(), upper, dt);
+    g_ride.look.update(mixed, motion, spin + g_ride.spin_carry, upper, dt);
     const std::vector<JointOut> js = g_ride.look.joints();
     std::vector<openrac_joint_offset> offsets(js.size());
     for (size_t i = 0; i < js.size(); ++i) {
@@ -609,6 +640,8 @@ void end_ride() {
     release_hand();
     g_ride.look.reset();
     g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
+    g_ride.spin_carry = g_ride.spin_carry_v = g_ride.drawn_turn = g_ride.drawn_rate = 0.0f;
+    g_ride.spinning = false;
     g_ride.has_yaw = false;
     g_ride.has_shown = false;
     effects().stop_sounds();
