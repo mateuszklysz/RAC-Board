@@ -5,8 +5,8 @@
 
 Everything is made here from numbers, so the model is the mod's own (nothing from either game):
 a deck with a kicked nose and tail, a grip stripe, a hover body under it with two glowing jets and
-tail fins, and an orange and grey paint. The model is in metres, glTF's axes: +y up, +z the nose, the deck's top
-at y = 0 (where the rider's feet go), centred on the origin.
+tail fins, and a grey and orange paint with a glowing fan underneath. The model is in metres,
+glTF's axes: +y up, +z the nose, the deck's top at y = 0 (where the rider's feet go), centred on the origin.
 
     python3 tools/make_board.py            # writes assets/board.glb and assets/board.png
 
@@ -32,42 +32,131 @@ BODY_LENGTH = 0.80
 BODY_DROP = 0.055   # its axis below the deck's underside
 JET_Z = 0.24        # the two jets, ahead of and behind the middle
 
-# The texture: a 64x64 atlas of flat regions, u right, v down.
-TEX = 64
+# The texture: a 256x256 atlas of flat regions, u right, v down.
+TEX = 256
 REGIONS = {  # name: (u0, v0, u1, v1) in texels
-    "top": (0, 0, 32, 32),
-    "side": (32, 0, 64, 16),
-    "bottom": (32, 16, 64, 32),
-    "pod": (0, 32, 32, 64),
-    "glow": (32, 32, 64, 64),
+    "top": (0, 0, 96, 256),
+    "bottom": (96, 0, 192, 256),
+    "side": (192, 0, 256, 64),
+    "pod": (192, 64, 256, 160),
+    "glow": (192, 160, 256, 256),
 }
+
+# The paint: grey plates, orange caps and rails (Ratchet's orange), a dark grip, a blue glow.
+PLATE, PLATE_DARK = (132, 140, 146), (92, 100, 108)
+ORANGE, ORANGE_DARK, ORANGE_LIGHT = (240, 116, 30), (176, 70, 16), (255, 178, 92)
+GRIP, SEAM = (58, 60, 66), (64, 70, 76)
+GLOW = (100, 214, 255)
+
+
+def mix(a, b, t):
+    t = min(max(t, 0.0), 1.0)
+    return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
+
+
+def smooth(e0, e1, x):
+    t = min(max((x - e0) / (e1 - e0), 0.0), 1.0)
+    return t * t * (3 - 2 * t)
+
+
+def grain(x, y, k=1):
+    """A fixed noise in -1..1 per texel (no random, so the texture is the same every run)."""
+    h = (x * 374761393 + y * 668265263 + k * 2147483647) & 0xFFFFFFFF
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+    return ((h >> 8) & 0xFF) / 127.5 - 1.0
+
+
+def rgba(c):
+    return tuple(int(min(255, max(0, v))) for v in c) + (255,)
+
+
+def top(u, v, x, y):
+    """The deck: grey plates with seams, orange caps at nose and tail with rivets, orange rails
+    along the edges, a cross-hatched grip down the middle and an orange dome on a ring."""
+    a, b = (u - 0.5) * 2, (v - 0.5) * 2  # b: -1 tail, +1 nose
+    ax = abs(a)
+    c = mix(PLATE, PLATE_DARK, ax ** 2.2 * 0.7 + abs(b) ** 3 * 0.2)
+    c = mix(c, tuple(min(255, k + 18) for k in c), max(0, grain(x // 4, y // 8, 2)) * 0.35)
+    for sb in (-0.42, 0.42):
+        d = b - sb
+        if abs(d) < 0.02:
+            c = mix(c, SEAM, 0.85)
+        elif 0.02 <= d < 0.04:
+            c = mix(c, (255, 255, 255), 0.12)
+    cap = abs(b) - 0.70 + 0.12 * a * a
+    if cap > 0:
+        c = mix(ORANGE, ORANGE_DARK, cap * 2.2 + ax ** 2 * 0.5)
+        c = mix(c, ORANGE_LIGHT, max(0.0, 0.5 - ax) * 0.8 * max(0.0, 1 - cap * 4))
+        if cap < 0.02:
+            c = mix(c, SEAM, 0.7)
+        for k in (-0.55, 0.0, 0.55):
+            if math.hypot((a - k) * WIDTH, (cap - 0.05) * LENGTH / 2) < 0.012:
+                c = mix(c, (230, 232, 236), 0.8)
+        return rgba(c)
+    if ax > 0.86:
+        c = mix(ORANGE, ORANGE_DARK, (ax - 0.86) * 6)
+        if ax < 0.88:
+            c = mix(c, SEAM, 0.6)
+    elif ax < 0.30 and abs(b) < 0.62:
+        hatch = (x + y) % 4 == 0 or (x - y) % 4 == 0
+        c = mix(GRIP, tuple(k + 14 for k in GRIP), 0.6 if hatch else 0.0)
+        if ax > 0.28:
+            c = mix(c, SEAM, 0.5)
+    r = math.hypot(a * WIDTH, b * LENGTH) / 2
+    if r < 0.055:
+        c = mix(mix(ORANGE, (255, 255, 255), 0.35), mix(ORANGE, (0, 0, 0), 0.35), r / 0.055 + b * 2)
+    elif r < 0.072:
+        c = mix((200, 204, 208), (120, 126, 132), (r - 0.055) / 0.017)
+        if r > 0.068:
+            c = mix(c, SEAM, 0.7)
+    return rgba(c)
+
+
+def bottom(u, v, x, y):
+    """Under the deck: a swirled fan of glowing blades round a silver hub, an orange rim."""
+    a, b = (u - 0.5) * 2 * WIDTH / LENGTH, (v - 0.5) * 2
+    r, ang = math.hypot(a, b), math.atan2(b, a)
+    c = mix((74, 86, 102), (44, 52, 64), r)
+    blade = (ang * 8 / (2 * math.pi) + r * 3.0) % 1.0
+    e = min(blade, 1 - blade)
+    if r < 0.12:
+        c = mix((190, 194, 198), (110, 116, 122), r / 0.12)
+    elif r < 0.15:
+        c = GLOW
+    elif r < 0.78:
+        c = mix(c, (32, 38, 48), smooth(0.35, 0.0, blade) * 0.5)
+        if e < 0.06:
+            c = mix(GLOW, (50, 130, 200), e / 0.06)
+    elif r < 0.84:
+        c = mix((150, 104, 66), (100, 70, 44), (r - 0.78) / 0.06)
+    else:
+        c = mix(ORANGE_DARK, ORANGE, 0.5 + 0.3 * grain(x // 4, y // 4, 5))
+    return rgba(c)
+
+
+def side(u, v, x, y):
+    if v < 0.45:
+        return rgba(mix(ORANGE, ORANGE_DARK, v * 1.6))
+    return rgba(mix((150, 156, 162), (90, 96, 104), (v - 0.45) * 1.8))
+
+
+def pod(u, v, x, y):
+    base = mix((176, 182, 188), (92, 98, 106), abs(u - 0.5) * 2)
+    return rgba(mix(base, ORANGE, 0.9) if (v * 5) % 1.0 < 0.16 else base)
+
+
+def glow(u, v, x, y):
+    return rgba(mix(GLOW, (60, 150, 220), abs(v - 0.5) * 2))
 
 
 def texture():
     """The atlas as RGBA rows: painted per region."""
     px = [[(0, 0, 0, 255)] * TEX for _ in range(TEX)]
-
-    def fill(region, fn):
-        u0, v0, u1, v1 = REGIONS[region]
+    for name, fn in (("top", top), ("bottom", bottom), ("side", side), ("pod", pod), ("glow", glow)):
+        u0, v0, u1, v1 = REGIONS[name]
         for y in range(v0, v1):
             for x in range(u0, u1):
-                px[y][x] = fn((x - u0) / (u1 - u0), (y - v0) / (v1 - v0))
-
-    def top(u, v):
-        # Orange paint with a dark grip stripe down the middle and two thin cream lines.
-        if abs(u - 0.5) < 0.18:
-            noise = ((int(u * 97) * 31 + int(v * 89) * 17) % 7) * 3
-            return (52 + noise, 50 + noise, 56 + noise, 255)
-        if abs(abs(u - 0.5) - 0.24) < 0.025:
-            return (240, 226, 190, 255)
-        shade = int(18 * v)
-        return (236 - shade, 120 - shade // 2, 28, 255)
-
-    fill("top", top)
-    fill("side", lambda u, v: (150 - int(30 * v), 156 - int(30 * v), 166 - int(30 * v), 255))
-    fill("bottom", lambda u, v: (70, 74, 82, 255) if (int(u * 8) + int(v * 2)) % 2 else (82, 86, 94, 255))
-    fill("pod", lambda u, v: (96 + int(60 * abs(math.sin(v * math.pi))),) * 3 + (255,))
-    fill("glow", lambda u, v: (90, 230, 255, 255) if abs(v - 0.5) < 0.3 else (40, 140, 200, 255))
+                px[y][x] = fn((x - u0 + 0.5) / (u1 - u0), (y - v0 + 0.5) / (v1 - v0), x, y)
     return px
 
 
