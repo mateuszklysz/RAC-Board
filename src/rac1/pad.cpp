@@ -94,6 +94,7 @@ bool look_held() {
 }
 
 uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
+uint8_t pad_right_y() { return g_pad.valid ? g_pad.sticks[1] : 128; }
 
 void feed_pad(jak::Target& t, bool toggle) {
     jak::cpad_set_hw(t.pad, jak_buttons(toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);

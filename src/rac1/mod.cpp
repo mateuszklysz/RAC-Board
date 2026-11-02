@@ -53,16 +53,6 @@ void hero_update(const openrac::Original<void()>& original) {
         }
         toggle = false; // the press that got on is not also the one that gets off
     }
-    // The game's first-person view (L1) standing on the board: the game's update, the board waiting.
-    if (looking() || look_start()) {
-        original();
-        if (toggle) {
-            end_ride();
-        } else if (look_tick()) {
-            show_ride(false);
-        }
-        return;
-    }
     const RideStep step = tick_ride(toggle);
     if (step != RideStep::taken) show_ride(step == RideStep::left);
     if (step == RideStep::taken) camera_stop(true); // the game's scene has its own camera

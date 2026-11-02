@@ -51,8 +51,9 @@ struct Ride {
     float spin_lead = 0.0f;  // the upper body's lead into the spin (radians)
     float last_spin = 0.0f;
     float spin_time = 0.0f;  // the grab loop's frame clock
-    bool looking = false;    // in the game's first-person view (look_start)
-    int look_frames = 0;
+    // The first-person view (L1): on, and the right stick's look about the heading (radians).
+    bool first_person = false;
+    float fp_yaw = 0.0f, fp_pitch = 0.0f;
     // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
     uint32_t start_seq = 0;
     float start_speed = 1.0f;
@@ -395,6 +396,45 @@ void show_guide(const openrac_pose& pose) {
     pose_flat(g_guide_dot, "assets/fx/glow.glb", dot_at, dir, 0.45f, dot_tint);
 }
 
+// The first-person view while riding (L1, the game's own button for it): the camera at his eyes
+// along his heading, the right stick looking about, and the ride going on under it.
+void first_person(const openrac_pose& pose, float yaw, bool last) {
+    const bool on = !last && playing() && look_held() && mod().has_camera();
+    if (!on) {
+        if (g_ride.first_person) {
+            g_ride.first_person = false;
+            // The board's camera takes over again with its next frame; else the game's.
+            if (!settings().board_camera) mod().camera_release();
+        }
+        return;
+    }
+    if (!g_ride.first_person) g_ride.fp_yaw = g_ride.fp_pitch = 0.0f;
+    g_ride.first_person = true;
+    const auto axis = [](uint8_t v) {
+        const float d = static_cast<float>(v) - 128.0f;
+        return std::fabs(d) < 32.0f ? 0.0f : std::copysign(std::min(1.0f, (std::fabs(d) - 32.0f) / 78.0f), d);
+    };
+    // The stick turns the look; let go, it comes back to the heading.
+    const float k = std::min(1.0f, 10.0f * frame_seconds());
+    g_ride.fp_yaw += (-axis(pad_right_x()) * 1.2f - g_ride.fp_yaw) * k;
+    g_ride.fp_pitch += (-axis(pad_right_y()) * 0.7f - g_ride.fp_pitch) * k;
+    const float a = yaw + g_ride.fp_yaw, cp = std::cos(g_ride.fp_pitch);
+    const float f[3] = {std::cos(a) * cp, std::sin(a) * cp, std::sin(g_ride.fp_pitch)};
+    const float l[3] = {-std::sin(a), std::cos(a), 0.0f};
+    openrac_camera c{};
+    // His eyes: a little in front of his face, so the camera is not inside his head.
+    const float head[3] = {std::cos(yaw), std::sin(yaw), 0.0f};
+    for (int i = 0; i < 3; ++i) {
+        c.eye[i] = pose.position[i] + head[i] * 0.45f + (i == 2 ? 1.1f : 0.0f);
+        c.forward[i] = f[i];
+        c.left[i] = l[i];
+    }
+    c.up[0] = f[1] * l[2] - f[2] * l[1];
+    c.up[1] = f[2] * l[0] - f[0] * l[2];
+    c.up[2] = f[0] * l[1] - f[1] * l[0];
+    mod().camera_set(c);
+}
+
 } // namespace
 
 bool riding() { return g_ride.t != nullptr; }
@@ -569,42 +609,8 @@ void show_ride(bool last) {
     } else {
         show_guide(pose);
     }
+    first_person(pose, yaw, last);
     hide_hand(true);
-}
-
-bool looking() { return riding() && g_ride.looking; }
-
-bool look_start() {
-    if (!riding() || g_ride.looking || !playing() || !look_held()) return false;
-    jak::Target& t = *g_ride.t;
-    const jak::StateId st = g_ride.rt->state;
-    if (st != jak::StateId::target_board_stance && st != jak::StateId::target_board_duck_stance) return false;
-    // On the ground only. He stands still in it, as on foot, so the board stops.
-    t.control.transv = jak::Vec{0.0f, 0.0f, 0.0f, 0.0f};
-    g_ride.looking = true;
-    g_ride.look_frames = 0;
-    if (settings().board_camera) camera_stop(true);
-    trace("first-person view");
-    return true;
-}
-
-bool look_tick() {
-    // Over once the button is up and the game has him back in a state of his own on the ground
-    // (its look state ends through a short wait), or after a while whatever it does.
-    ++g_ride.look_frames;
-    openrac_pose pose{};
-    if (!mod().hero_pose(pose)) return false;
-    if (look_held() || (pose.state == 1 || pose.state == 0x1E)) {
-        if (g_ride.look_frames < 60 * 60 * 10) return false;
-    }
-    g_ride.looking = false;
-    // The ride goes on from the state the game left him in, where he stands.
-    interaction().hero_state = pose.state;
-    std::copy(pose.position, pose.position + 3, g_ride.shown);
-    g_ride.has_shown = true;
-    if (settings().board_camera) camera_start(*g_ride.t);
-    trace("first-person view over");
-    return true;
 }
 
 void end_ride() {
@@ -619,7 +625,10 @@ void end_ride() {
     g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
     g_ride.has_yaw = false;
     g_ride.has_shown = false;
-    g_ride.looking = false;
+    if (g_ride.first_person) {
+        g_ride.first_person = false;
+        if (!settings().board_camera) mod().camera_release();
+    }
     effects().stop_sounds();
     forget_ground();
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
