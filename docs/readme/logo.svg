@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a3abb2"/>
+      <stop offset="1" stop-color="#6e767e"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb25c"/>
+      <stop offset="1" stop-color="#d0601a"/>
+    </linearGradient>
+    <radialGradient id="jet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#e9f6ff"/>
+      <stop offset="0.35" stop-color="#64d6ff"/>
+      <stop offset="1" stop-color="#2a7bd8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2433"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <clipPath id="deckclip">
+      <path d="M22 84 Q16 70 30 70 L130 70 Q144 70 138 84 Z"/>
+    </clipPath>
+  </defs>
+  <rect x="4" y="4" width="152" height="152" rx="34" fill="url(#bg)"/>
+  <ellipse cx="80" cy="122" rx="62" ry="12" fill="url(#jet)" opacity="0.9"/>
+  <g transform="rotate(-14 80 80) translate(80 82) scale(1.25) translate(-80 -84)">
+    <path d="M44 84 L116 84 Q114 96 100 96 L60 96 Q46 96 44 84 Z" fill="#4a5462"/>
+    <circle cx="60" cy="98" r="7" fill="url(#jet)"/>
+    <circle cx="100" cy="98" r="7" fill="url(#jet)"/>
+    <circle cx="60" cy="98" r="3" fill="#e9f6ff"/>
+    <circle cx="100" cy="98" r="3" fill="#e9f6ff"/>
+    <g clip-path="url(#deckclip)">
+      <rect x="10" y="66" width="140" height="20" fill="url(#plate)"/>
+      <rect x="10" y="66" width="30" height="20" fill="url(#cap)"/>
+      <rect x="120" y="66" width="30" height="20" fill="url(#cap)"/>
+      <rect x="10" y="80" width="140" height="4" fill="#e07020"/>
+      <rect x="48" y="70" width="64" height="5" rx="2" fill="#3a3c42"/>
+      <path d="M40 70 V84 M120 70 V84" stroke="#40464c" stroke-width="1.5"/>
+    </g>
+    <ellipse cx="80" cy="70.5" rx="4.5" ry="2.2" fill="#f07420" stroke="#c8ccd0" stroke-width="1"/>
+  </g>
+  <path d="M28 46 l10 -4 M122 40 l12 -2 M118 128 l14 4" stroke="#64d6ff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+</svg>

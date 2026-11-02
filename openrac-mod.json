@@ -1,0 +1,175 @@
+{
+  "format": 2,
+  "id": "rac-board",
+  "name": "RAC-Board",
+  "version": "0.2.0",
+  "author": "Mateusz Kłysz",
+  "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold R1 or R2 with Cross). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
+  "license": "MIT",
+  "homepage": "https://github.com/mateuszklysz/rac-board",
+  "api": "1.12",
+  "games": {
+    "rac1": [
+      "pal",
+      "ntsc"
+    ]
+  },
+  "hooks": [
+    "rac1.player.update"
+  ],
+  "assets": "assets",
+  "settings": [
+    {
+      "key": "board_button",
+      "name": "Board on and off",
+      "type": "choice",
+      "default": "up",
+      "choices": [
+        {
+          "value": "up",
+          "name": "D-pad Up"
+        },
+        {
+          "value": "down",
+          "name": "D-pad Down"
+        },
+        {
+          "value": "l2r2",
+          "name": "L2 and R2 together"
+        },
+        {
+          "value": "r2",
+          "name": "R2 (as in Jak II)"
+        }
+      ],
+      "description": "The pad button that gets on the board and off it. R2 also strafes with the lock-strafe and keyboard-mouse mods."
+    },
+    {
+      "key": "board_key",
+      "name": "Board on and off (keyboard)",
+      "type": "keybind",
+      "binds": 2,
+      "default": "KeyB",
+      "description": "The key that gets on the board and off it."
+    },
+    {
+      "key": "trick_button",
+      "name": "Spins and flips",
+      "type": "choice",
+      "default": "r1r2",
+      "choices": [
+        {
+          "value": "r1r2",
+          "name": "R1 or R2"
+        },
+        {
+          "value": "r1",
+          "name": "R1 (as in Jak II)"
+        },
+        {
+          "value": "l2",
+          "name": "L2"
+        },
+        {
+          "value": "r2",
+          "name": "R2"
+        },
+        {
+          "value": "l1",
+          "name": "L1"
+        }
+      ],
+      "description": "Hold it in the air with the stick left or right to spin, up or down to flip."
+    },
+    {
+      "key": "grind_button",
+      "name": "Grind",
+      "type": "choice",
+      "default": "r1r2x",
+      "choices": [
+        {
+          "value": "r1r2x",
+          "name": "R1 or R2, with Cross"
+        },
+        {
+          "value": "r1x",
+          "name": "R1 and Cross"
+        },
+        {
+          "value": "circle",
+          "name": "Circle (as in Jak II)"
+        },
+        {
+          "value": "square",
+          "name": "Square"
+        },
+        {
+          "value": "l2",
+          "name": "L2"
+        },
+        {
+          "value": "r2",
+          "name": "R2"
+        }
+      ],
+      "description": "Hold it near a rail or an edge to grind it. Circle and Square are the game's weapon and wrench."
+    },
+    {
+      "key": "grab_button",
+      "name": "Duck and grabs",
+      "type": "choice",
+      "default": "l1",
+      "choices": [
+        {
+          "value": "l2",
+          "name": "L2"
+        },
+        {
+          "value": "r2",
+          "name": "R2"
+        },
+        {
+          "value": "l1",
+          "name": "L1 (as in Jak II)"
+        },
+        {
+          "value": "r3",
+          "name": "R3"
+        },
+        {
+          "value": "none",
+          "name": "None"
+        }
+      ],
+      "description": "Hold it to duck (and jump higher), or in the air with the stick for a grab."
+    },
+    {
+      "key": "trick_display",
+      "name": "Trick names and points",
+      "type": "bool",
+      "default": true,
+      "description": "Shows each combo's tricks and points in the game's HUD, in its own font, low in the middle of the screen."
+    },
+    {
+      "key": "board_camera",
+      "name": "Board camera",
+      "type": "bool",
+      "default": false,
+      "description": "On: Jak II's camera follows the board, as it does in Jak II. Off: the game's own camera."
+    },
+    {
+      "key": "heat_haze",
+      "name": "Heat haze",
+      "type": "bool",
+      "default": true,
+      "description": "The air shimmers behind the board's jet, as in Jak II."
+    },
+    {
+      "key": "trace",
+      "name": "Trace",
+      "type": "bool",
+      "default": false,
+      "description": "For bug reports: a line in the game's log for each board state change."
+    }
+  ]
+}
