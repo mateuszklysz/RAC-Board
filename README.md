@@ -1,83 +1,103 @@
-# RAC-Board
+<h1 align="center">
+  <img src="docs/readme/logo.svg" alt="" width="120"><br>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/title-dark.svg">
+    <img src="docs/readme/title-light.svg" alt="RAC-Board" width="460">
+  </picture>
+</h1>
 
-Jak II's JET-Board in Ratchet & Clank, for OpenRAC's native port (PAL and NTSC-U discs).
-Ratchet gets on a hoverboard and rides it with Jak II's own logic: the same physics, the same
-states and tricks (ollie, duck jump, spins, flips, grabs, grinds on rails, wall kicks, halfpipes)
-and the same quirks, because it is Jak II's code, ported from
-[OpenGOAL](https://github.com/open-goal/jak-project) (THIRD_PARTY.md). Clank stays on Ratchet's
-back while he rides, as Daxter stays on Jak's shoulder.
+<p align="center">
+  <strong>Jak II's JET-Board in Ratchet &amp; Clank.</strong><br>
+  Jak II's own board code, ported from OpenGOAL, running in OpenRAC's native port.
+</p>
 
-Ratchet rides in his own animation, made for this mod in the style of Jak's. Each animation the
-board's logic plays has a clip of ours with Jak's name and number of frames, and the clips are
-mixed as Jak II mixes Jak's: the logic's own joint-control (channels, blends, the stance's
-ground-tween of turn, slope and duck) picks the clips, their frames and weights. The clips move his
-knees, hips, back, arms, head, face, ears and tail, and the board under his feet; the board's
-upper-body twist turns his chest and its spin his whole body. A little secondary motion (springs)
-keeps him alive between keys: knees on bumps and landings, ears and tail in the wind, blinks.
-Jak II's world is shrunk to Ratchet's size (0.42, his shoulders over Jak's), so speeds, jumps and
-collision keep Jak's proportions. The numbers taken from a disc are numbers only: the animation
-lengths and speeds, and Jak's shoulder height. So far the riding, turns, slopes, duck, jump, air
-and landing have their own clips; the tricks and hits hold one look each until theirs come.
+<p align="center">
+  <a href="https://github.com/mateuszklysz/rac-board/releases/latest"><img src="https://img.shields.io/github/v/release/mateuszklysz/rac-board?label=download&color=e8731f" alt="Download"></a>
+  <a href="https://github.com/mateuszklysz/rac-board/actions/workflows/build.yml"><img src="https://github.com/mateuszklysz/rac-board/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <a href="https://github.com/OpenRAC/OpenRAC"><img src="https://img.shields.io/badge/needs-OpenRAC-e8a317" alt="Needs OpenRAC"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence"></a>
+</p>
 
-**Work in progress.** It needs OpenRAC with mod interface 1.12 (below).
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#controls">Controls</a> ·
+  <a href="#build">Build</a> ·
+  <a href="docs/how-it-works.md">How it works</a> ·
+  <a href="docs/jak2-parity.md">Jak II parity</a>
+</p>
+
+<p align="center">
+  <img src="docs/readme/grind.jpg" alt="Ratchet grinds a rail in Kerwan on the board, sparks under it" width="860">
+</p>
+
+## What is it?
+
+A mod that gives Ratchet Jak II's JET-Board.
+
+- **Jak II's real board logic.** The states, physics, tricks and collision are Jak II's code, ported line by line.
+- **Its quirks too.** Hovers, extended flips and the other speedrun glitches work as in Jak II.
+- **Grind any rail.** Every grind rail in the game can be ridden, plus any edge Jak could grind.
+- **Tricks and combos.** Spins, flips, grabs, boosts, with Jak II's names and points on screen.
+- **Ratchet's own style.** He rides in clips made for him, with Clank on his back.
+- **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools.
+
+<p align="center">
+  <img src="docs/readme/trick.jpg" alt="Ratchet flips the board upside down in the air over Kerwan" width="425">
+  <img src="docs/readme/ride.jpg" alt="Ratchet jumps the board over Kerwan with Clank on his back" width="425">
+</p>
+
+## Install
+
+1. Get [OpenRAC](https://github.com/OpenRAC/OpenRAC) with mod interface 1.12 or newer.
+2. In the launcher, open the **Mods** tab.
+3. Paste `https://github.com/mateuszklysz/rac-board` and install.
+4. Play Ratchet & Clank (PAL or NTSC-U) and press **D-pad Down** to get on.
 
 ## Controls
 
-On the board Ratchet does not fire, swing the wrench or open the Quick Select, so the board takes
-those buttons only while he rides; on foot the game's controls are as they always are.
+The board takes these buttons only while Ratchet rides. On foot the game's controls are unchanged.
 
-| Action | Pad (default) | Jak II |
+| Action | Pad | Jak II |
 |---|---|---|
-| Get on and off | D-pad Down (setting: L2 and R2 together, or R2) | R2 |
+| Get on and off | D-pad Down (or L2+R2, or R2) | R2 |
 | Jump (hold for higher) | Cross | Cross |
-| Duck, duck jump; in the air with the stick: grabs and tricks | R1 | L1 |
+| Duck, duck jump, grabs in the air | R1 | L1 |
 | Spin (stick left or right), flip (stick up or down) | L1 | R1 |
-| Hold on to a rail | Circle or Square | Circle or Square |
+| Grind a rail | Hold Circle or Square | Circle or Square |
 
-**Crouch on R1** (on) swaps L1 and R1 so ducking is where Ratchet crouches; off gives Jak II's
-buttons (duck and grabs on L1, spins and flips on R1). The keyboard gets on and off with **B** (rebindable); with the keyboard-mouse mod the
-rest goes through the pad buttons it already maps.
-
-## What it needs from OpenRAC
-
-Mod interface 1.12: the hook on the hero's whole update (`rac1.player.update`), `hero_set_pose`
-and `hero_set_joints` (the riding clips), the level's collision triangles, props (the board model,
-with the hero's shadow) and the mod's own sounds. Until an OpenRAC release has it, build against the SDK folder of an OpenRAC checkout that
-does (`-DOPENRAC_SDK=<checkout>/sdk`).
+- **Crouch on R1** (on by default) puts duck where Ratchet crouches. Turn it off for Jak II's layout.
+- On a keyboard, **B** gets on and off (you can rebind it).
 
 ## Build
 
-    python3 tools/fetch_sdk.py        # the SDK sdk.lock pins, into .sdk/
-    cmake -S . -B build -G Ninja
-    cmake --build build
-    ctest --test-dir build
+```sh
+python3 tools/fetch_sdk.py        # the OpenRAC SDK that sdk.lock pins, into .sdk/
+cmake -S . -B build -G Ninja
+cmake --build build
+ctest --test-dir build
+```
 
-Push a tag `v<version>` and the build workflow publishes the release OpenRAC's launcher installs
-from (paste this repository's address in the launcher's Mods tab).
+To build against an OpenRAC checkout instead, pass `-DOPENRAC_SDK=<checkout>/sdk`.
 
-## How it is made
+Push a tag `v<version>` and the build workflow publishes a release the launcher can install.
 
-| Folder | What |
+## Docs
+
+| Page | What |
 |---|---|
-| `src/jak` | Jak II's engine routines the board uses: maths, the target's movement, collision |
-| `src/board` | the board: its states, physics and tricks |
-| `src/rac1` | the adapter: Ratchet & Clank's hero, pad, collision and drawing |
-| `tools` | generators: `gen_jak_types.py` (the GOAL structures), the board's model and sounds, `poses/` (Ratchet's riding clips) |
-| `tests` | the ported code against values worked out from the GOAL |
+| [How it works](docs/how-it-works.md) | The frame, the folders, the rails |
+| [Jak II parity](docs/jak2-parity.md) | What is the same as Jak II, what changed, what is missing |
+| [Glitches](docs/glitches.md) | The board glitches the mod keeps |
+| [Contributing](CONTRIBUTING.md) | Commit rules |
 
-`src/jak/types_gen.hpp` is written by `tools/gen_jak_types.py` from an OpenGOAL checkout, and
-`src/rac1/anim/ride_clips.inc` by `tools/poses/clips.py` from `tools/poses/ride_keys.json` (Ratchet's
-keyframes, worked out from the motion of Jak's board animations, fitted to Ratchet's body), and
-`src/rac1/anim/ride_poses.inc` (the secondary motion's channels) by `tools/poses/export.py` (it reads
-Ratchet's skeleton from your own OpenRAC level data).
+## Credits
 
-## Contributing
-
-Commits and pull requests follow [CONTRIBUTING.md](CONTRIBUTING.md): Conventional Commits, no AI
-agent trailers, footers, session links or agent identities. The `ai-rules` workflow checks every
-pull request; `scripts/commit-msg.py` is the same check as a local git hook.
+- [OpenGOAL](https://github.com/open-goal/jak-project) for the decompiled Jak II code the board is ported from.
+- [OpenRAC](https://github.com/OpenRAC/OpenRAC) for the native Ratchet & Clank and its mod interface.
+- Naughty Dog for the JET-Board and Insomniac Games for Ratchet & Clank.
 
 ## Licence
 
-MIT (LICENSE). The files ported from OpenGOAL are also under OpenGOAL's ISC licence
-(THIRD_PARTY.md).
+MIT ([LICENSE](LICENSE)). Files ported from OpenGOAL are also under OpenGOAL's ISC licence ([THIRD_PARTY.md](THIRD_PARTY.md)).
+
+This project is not made by or linked to Naughty Dog, Insomniac Games or Sony.
