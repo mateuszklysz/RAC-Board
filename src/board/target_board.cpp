@@ -36,7 +36,6 @@ Vec sub(const Vec& a, const Vec& b) {
 // pat-surface bits as the code shifts them out of a word.
 uint32_t pat_mode_bits(uint32_t pat) { return (pat << 22) >> 29; }   // (shr (shl x 54) 61)
 uint32_t pat_event_bits(uint32_t pat) { return (pat << 8) >> 26; }   // (shr (shl x 40) 58)
-uint32_t pat_skip_bits(uint32_t pat) { return pat & 0x7fu; }         // (shr (shl x 57) 57)
 
 // The pat-surface the board ignores: noentity, noboard, probe (target-board-init, probe-test calls).
 constexpr uint32_t kPatNoentityNoboardProbe = (1u << 0) | (1u << 5) | (1u << 24);
@@ -1250,11 +1249,16 @@ void target_board_compute_edge(Target& self) {
             f26_1 = c.trans.y - q.best_intersect.y;
             sv_768 = q.best_pat.bits;
         }
+        // Mod deviation: Jak II also asks for a nogrind floor under the rail's end and, even at the
+        // last edge, a segment of 0.9 m or more. Ratchet's floors carry no nogrind (world.cpp) and his
+        // rails' bars can end in a short segment, so the board went on along the rail's line in the
+        // air (segment-array-index->vector runs past the end). Past the last edge with the floor
+        // away, the ride ends; a short segment still keeps it when another edge follows.
+        const bool next_edge = (s4.status & 2) != 0;
         if (static_cast<float>(b.ride_vertex_length) + goal_div(0.0f, f28_3) <
                 b.ride_vertex_index + goal_div(b.ride_speed * spf, f28_3) &&
-            f28_3 >= 3686.4f &&
-            ((f26_1 >= 6963.2f || (f26_1 >= 2048.0f && pat_mode_bits(sv_768) == 0)) &&
-             (pat_skip_bits(sv_768) & 8))) {
+            (f28_3 >= 3686.4f || !next_edge) &&
+            (f26_1 >= 6963.2f || (f26_1 >= 2048.0f && pat_mode_bits(sv_768) == 0))) {
             // ("end with length ...")
             s4_3 |= 4; // past the end
         }
