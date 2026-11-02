@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 #include "rac1/context.hpp"
@@ -47,7 +48,41 @@ int Effects::sound(const char* name) {
     return s;
 }
 
+namespace {
+
+// Jak's board sounds that Ratchet has his own of, the game's (entries of his class sound table, as
+// his own moves play them): his jump and double jump for the board's, his wrench swing's whoosh for
+// the tricks', and for the rail his landing on one and his grind's loop.
+struct HeroSound {
+    const char* name;
+    int sound;
+};
+constexpr HeroSound kHeroSounds[] = {
+    {"board-jump", 26},     {"board-q-jump", 26},   {"board-k-jump", 36}, {"board-kick", 27},
+    {"board-kickflip", 27}, {"board-noseflip", 27}, {"board-flip", 27},   {"board-method", 27},
+    {"board-nosegrab", 27}, {"board-boardspin", 53},
+};
+constexpr int kHeroRailLand = 13;
+constexpr int kHeroGrindLoop = 0;
+
+// Jak's jingles for a trick and its points: none in Ratchet's game, so none here.
+bool silent(const char* name) { return std::strcmp(name, "do-trick") == 0 || std::strcmp(name, "trick-score") == 0; }
+
+int hero_sound(const char* name) {
+    for (const HeroSound& h : kHeroSounds) {
+        if (std::strcmp(h.name, name) == 0) return h.sound;
+    }
+    return -1;
+}
+
+} // namespace
+
 uint32_t Effects::sound_play(const char* name, float volume, float pitch) {
+    if (silent(name)) return 0;
+    if (const int h = hero_sound(name); h >= 0) {
+        mod().hero_sound_play(h);
+        return 0;
+    }
     const int s = sound(name);
     if (s < 0) return 0;
     const uint32_t voice = mod().sound_play(s, volume, pitch_ratio(pitch), false);
@@ -58,6 +93,14 @@ uint32_t Effects::sound_play(const char* name, float volume, float pitch) {
 }
 
 void Effects::sound_loop(const char* name, uint32_t id, float volume, float pitch) {
+    // The rail: Ratchet's own landing on one, then his grind's loop until it stops.
+    if (std::strcmp(name, "board-rail") == 0) {
+        if (m_hero_voices.count(id) == 0) {
+            mod().hero_sound_play(kHeroRailLand);
+            m_hero_voices[id] = mod().hero_sound_play(kHeroGrindLoop, true);
+        }
+        return;
+    }
     auto it = m_voices.find(id);
     if (it != m_voices.end() && mod().sound_set(it->second, volume, pitch_ratio(pitch))) return;
     const int s = sound(name);
@@ -67,6 +110,10 @@ void Effects::sound_loop(const char* name, uint32_t id, float volume, float pitc
 }
 
 void Effects::sound_stop(uint32_t id) {
+    if (auto h = m_hero_voices.find(id); h != m_hero_voices.end()) {
+        if (h->second >= 0) mod().hero_sound_stop(h->second);
+        m_hero_voices.erase(h);
+    }
     auto it = m_voices.find(id);
     if (it == m_voices.end()) return;
     mod().sound_stop(it->second);
@@ -76,6 +123,10 @@ void Effects::sound_stop(uint32_t id) {
 void Effects::stop_sounds() {
     for (const auto& v : m_voices) mod().sound_stop(v.second);
     m_voices.clear();
+    for (const auto& v : m_hero_voices) {
+        if (v.second >= 0) mod().hero_sound_stop(v.second);
+    }
+    m_hero_voices.clear();
 }
 
 void Effects::particles(const char* group, const jak::Vec& at, float rate) {

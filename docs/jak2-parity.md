@@ -30,7 +30,7 @@ See [glitches.md](glitches.md).
 | Rails | The game's grind rails become thin bars the board can grind |
 | Buttons | Get on and off with D-pad Up (or D-pad Down, L2+R2, or R2). Duck and spin can swap (L1/R1) |
 | Animations | Our own clips for Ratchet, made in the style of Jak's and mixed by Jak II's joint control |
-| Effects | Particles and sounds made for the mod, shaped after Jak II's |
+| Effects | Particles and sounds made for the mod, shaped after Jak II's. Jumps, trick whooshes and the rail use Ratchet's own sounds from the game; Jak's trick chimes are left out |
 | Heat haze | The air behind the jet wobbles (part 432), drawn with OpenRAC's heat haze |
 | Board camera | Jak II's string camera with the board's settings follows the board; the right stick swings it. A wall pulls it in toward Ratchet (Jak II swings round the wall instead) |
 | Trick names | Shown as one line with the combo and points, cleared 3 s after the combo ends |

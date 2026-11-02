@@ -28,7 +28,7 @@ permissions:
 # Until sdk.lock's release is out: OpenRAC's mod interface 1.12, from the fork's branch that adds it.
 env:
   SDK_FALLBACK_REPO: mateuszklysz/OpenRAC
-  SDK_FALLBACK_REF: 2ef206ba32c118cd70b79bcad274aca32da85621
+  SDK_FALLBACK_REF: b08bc92cb859efc995566eebafc5960b4cd2c968
 
 concurrency:
   group: build-${{ github.ref }}
