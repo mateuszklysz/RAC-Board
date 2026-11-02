@@ -52,8 +52,6 @@ struct Ride {
     float last_spin = 0.0f;
     float spin_time = 0.0f;  // the grab loop's frame clock
     // The first-person view (L1): on, and the right stick's look about the heading (radians).
-    bool first_person = false;
-    float fp_yaw = 0.0f, fp_pitch = 0.0f;
     // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
     uint32_t start_seq = 0;
     float start_speed = 1.0f;
@@ -376,14 +374,15 @@ void hide_guide() {
     if (g_guide_dot >= 0) mod().prop_hide(g_guide_dot, true);
 }
 
-// The guide while a trick runs in the air (a spin, a flip, a grab), faded in and out.
+// The guide while a spin runs in the air, faded in and out.
 void show_guide(const openrac_pose& pose) {
     using jak::StateId;
     const jak::Target& t = *g_ride.t;
     const StateId st = g_ride.rt->state;
     const bool air = !(t.control.status & jak::cstat::on_surface) && !grounded(st);
-    const bool trick = st == StateId::target_board_flip || st == StateId::target_board_hold ||
-                       st == StateId::target_board_trickx || g_ride.spin_hold > 0.05f;
+    // Only a spin (R1 with the stick to a side) turns the board away from where it goes; flips
+    // (stick forward or back) and grabs keep it pointing ahead.
+    const bool trick = g_ride.spin_hold > 0.05f;
     const float want = air && trick ? 1.0f : 0.0f;
     const float rate = want > g_guide_alpha ? 8.0f : 5.0f;
     g_guide_alpha += std::clamp(want - g_guide_alpha, -rate * frame_seconds(), rate * frame_seconds());
@@ -404,45 +403,6 @@ void show_guide(const openrac_pose& pose) {
     const float dot_at[3] = {at[0] + dir[0] * 0.86f, at[1] + dir[1] * 0.86f, at[2]};
     const float dot_tint[4] = {1.0f, 0.85f, 0.4f, 0.55f * g_guide_alpha};
     pose_flat(g_guide_dot, "assets/fx/glow.glb", dot_at, dir, 0.45f, dot_tint);
-}
-
-// The first-person view while riding (L1, the game's own button for it): the camera at his eyes
-// along his heading, the right stick looking about, and the ride going on under it.
-void first_person(const openrac_pose& pose, float yaw, bool last) {
-    const bool on = !last && playing() && look_held() && mod().has_camera();
-    if (!on) {
-        if (g_ride.first_person) {
-            g_ride.first_person = false;
-            // The board's camera takes over again with its next frame; else the game's.
-            if (!settings().board_camera) mod().camera_release();
-        }
-        return;
-    }
-    if (!g_ride.first_person) g_ride.fp_yaw = g_ride.fp_pitch = 0.0f;
-    g_ride.first_person = true;
-    const auto axis = [](uint8_t v) {
-        const float d = static_cast<float>(v) - 128.0f;
-        return std::fabs(d) < 32.0f ? 0.0f : std::copysign(std::min(1.0f, (std::fabs(d) - 32.0f) / 78.0f), d);
-    };
-    // The stick turns the look; let go, it comes back to the heading.
-    const float k = std::min(1.0f, 10.0f * frame_seconds());
-    g_ride.fp_yaw += (-axis(pad_right_x()) * 1.2f - g_ride.fp_yaw) * k;
-    g_ride.fp_pitch += (-axis(pad_right_y()) * 0.7f - g_ride.fp_pitch) * k;
-    const float a = yaw + g_ride.fp_yaw, cp = std::cos(g_ride.fp_pitch);
-    const float f[3] = {std::cos(a) * cp, std::sin(a) * cp, std::sin(g_ride.fp_pitch)};
-    const float l[3] = {-std::sin(a), std::cos(a), 0.0f};
-    openrac_camera c{};
-    // His eyes: a little in front of his face, so the camera is not inside his head.
-    const float head[3] = {std::cos(yaw), std::sin(yaw), 0.0f};
-    for (int i = 0; i < 3; ++i) {
-        c.eye[i] = pose.position[i] + head[i] * 0.45f + (i == 2 ? 1.1f : 0.0f);
-        c.forward[i] = f[i];
-        c.left[i] = l[i];
-    }
-    c.up[0] = f[1] * l[2] - f[2] * l[1];
-    c.up[1] = f[2] * l[0] - f[0] * l[2];
-    c.up[2] = f[0] * l[1] - f[1] * l[0];
-    mod().camera_set(c);
 }
 
 } // namespace
@@ -619,7 +579,6 @@ void show_ride(bool last) {
     } else {
         show_guide(pose);
     }
-    first_person(pose, yaw, last);
     hide_hand(true);
 }
 
@@ -635,10 +594,6 @@ void end_ride() {
     g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
     g_ride.has_yaw = false;
     g_ride.has_shown = false;
-    if (g_ride.first_person) {
-        g_ride.first_person = false;
-        if (!settings().board_camera) mod().camera_release();
-    }
     effects().stop_sounds();
     forget_ground();
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);

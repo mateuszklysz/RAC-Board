@@ -111,10 +111,14 @@ uint32_t Effects::sound_play(const char* name, float volume, float pitch) {
     }
     const int s = sound(name);
     if (s < 0) return 0;
-    const uint32_t voice = mod().sound_play(s, volume, pitch_ratio(pitch), false);
+    // A "-loop" sound (the spin's) loops in Jak II's bank until the board stops it.
+    const size_t n = std::strlen(name);
+    const bool loop = n > 5 && std::strcmp(name + n - 5, "-loop") == 0;
+    const uint32_t voice = mod().sound_play(s, volume, pitch_ratio(pitch), loop);
     if (voice == 0) return 0;
     const uint32_t id = m_next++;
     m_voices[id] = voice;
+    if (!loop) m_once.insert(id);
     return id;
 }
 
@@ -129,6 +133,9 @@ void Effects::sound_loop(const char* name, uint32_t id, float volume, float pitc
     }
     auto it = m_voices.find(id);
     if (it != m_voices.end() && mod().sound_set(it->second, volume, pitch_ratio(pitch))) return;
+    // A one-shot that ended, or was stopped under the pause, stays over: started again as a loop it
+    // played on for good once the board dropped its id (the spin's loop after a pause).
+    if (m_once.count(id) != 0) return;
     const int s = sound(name);
     if (s < 0) return;
     const uint32_t voice = mod().sound_play(s, volume, pitch_ratio(pitch), true);
@@ -140,6 +147,7 @@ void Effects::sound_stop(uint32_t id) {
         if (h->second >= 0) mod().hero_sound_stop(h->second);
         m_hero_voices.erase(h);
     }
+    m_once.erase(id);
     auto it = m_voices.find(id);
     if (it == m_voices.end()) return;
     mod().sound_stop(it->second);
@@ -154,6 +162,7 @@ void Effects::pause_sounds() {
 void Effects::stop_sounds() {
     for (const auto& v : m_voices) mod().sound_stop(v.second);
     m_voices.clear();
+    m_once.clear();
     for (const auto& v : m_hero_voices) {
         if (v.second >= 0) mod().hero_sound_stop(v.second);
     }

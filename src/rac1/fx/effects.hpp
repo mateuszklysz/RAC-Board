@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <map>
+#include <set>
 #include <string>
 
 #include "jak/host.hpp"
@@ -52,6 +53,8 @@ class Effects : public jak::Effects {
     BoardFx m_fx;
     std::map<std::string, int> m_sounds;
     std::map<uint32_t, uint32_t> m_voices;
+    // Ids of one-shot voices (sound_play): a sound_loop on one only sets it, never starts it again.
+    std::set<uint32_t> m_once;
     std::map<uint32_t, int> m_hero_voices; // the game's own sounds on Ratchet, by the same ids
     uint32_t m_next = 0x80000000u; // apart from new-sound-id's ids (0x10000 up)
     // The combo as add-trick-to-combo! keeps it: up to 16 tricks and their points.

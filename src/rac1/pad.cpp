@@ -87,14 +87,7 @@ bool toggle_pressed() {
     return pressed;
 }
 
-bool look_held() {
-    const Settings& s = settings();
-    if ((s.trick.bits() | s.grind.bits() | s.grab.bits()) & jak::pad::l1) return false;
-    return g_pad.valid && (g_pad.held & jak::pad::l1);
-}
-
 uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
-uint8_t pad_right_y() { return g_pad.valid ? g_pad.sticks[1] : 128; }
 
 void feed_pad(jak::Target& t, bool toggle) {
     jak::cpad_set_hw(t.pad, jak_buttons(toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);

@@ -161,6 +161,9 @@ void target_board_spin_check(Target& self) {
         b.troty = 0.0f;
         b.troty_cum = 0.0f;
         b.unknown_deg00 = 0.0f;
+        // A spin begun again before the last one's end fade: its loop stopped here (mod: the host's
+        // loops play until stopped).
+        sound_stop(self, rt.spin_sound_id);
         rt.spin_sound_id = 0;
         c.mod_surface = &board_spin_mods;
     }
