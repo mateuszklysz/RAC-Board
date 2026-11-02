@@ -43,7 +43,7 @@ A mod that gives Ratchet Jak II's JET-Board.
 
 <p align="center">
   <img src="docs/readme/trick.jpg" alt="Ratchet spins the board in the air over Kerwan, Clank on his back" width="425">
-  <img src="docs/readme/ride.gif" alt="Ratchet gets on the board on Kerwan and does a front flip" width="425">
+  <img src="docs/readme/ride.gif" alt="Ratchet gets on the board on Kerwan and does a front flip, in slow motion" width="425">
 </p>
 
 ## Install
