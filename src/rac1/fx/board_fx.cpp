@@ -291,7 +291,10 @@ void BoardFx::update(openrac::Mod& mod, float dt) {
         const std::size_t n = used[p.sprite]++;
         if (n >= props.size()) {
             const int id = mod.prop_create(kMeshes[p.sprite]);
-            if (id < 0) continue;
+            if (id < 0) {
+                --used[p.sprite]; // none made: the next one tries again in this place
+                continue;
+            }
             props.push_back(id);
         }
         // Its axes: across (x), up the sprite (y) and its face (z).

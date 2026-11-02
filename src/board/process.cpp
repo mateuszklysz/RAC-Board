@@ -104,7 +104,10 @@ void run_main(Target& self) {
 
 } // namespace
 
-const char* state_name(StateId id) { return kStateNames[static_cast<int>(id)]; }
+const char* state_name(StateId id) {
+    const int i = static_cast<int>(id);
+    return i > 0 && i < static_cast<int>(StateId::count) ? kStateNames[i] : "none";
+}
 
 namespace {
 // The collision code's send-event to the target (collide.hpp, Target::collide_event), as the board's

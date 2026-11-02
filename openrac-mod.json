@@ -17,6 +17,7 @@
   "hooks": [
     "rac1.player.update"
   ],
+  "assets": "assets",
   "settings": [
     {
       "key": "board_button",
