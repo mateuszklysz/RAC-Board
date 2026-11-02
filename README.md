@@ -42,7 +42,7 @@ A mod that gives Ratchet Jak II's JET-Board.
 - **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools.
 
 <p align="center">
-  <img src="docs/readme/trick.jpg" alt="Ratchet flips the board upside down in the air over Kerwan" width="425">
+  <img src="docs/readme/trick.jpg" alt="Ratchet spins the board in the air over Kerwan, Clank on his back" width="425">
   <img src="docs/readme/ride.jpg" alt="Ratchet jumps the board over Kerwan with Clank on his back" width="425">
 </p>
 
