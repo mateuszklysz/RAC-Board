@@ -248,6 +248,16 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     pose.flags = (t.control.status & jak::cstat::on_surface) || grounded(g_ride.rt->state) ? OPENRAC_POSE_ON_GROUND
                                                                                          : OPENRAC_POSE_IN_AIR;
     mod().hero_set_pose(pose);
+    // On the ground the game makes a jump, flip or fall he got on in idle (its camera has a mode
+    // for each): the state the ride now hands back, standing.
+    openrac_pose now{};
+    if (mod().hero_pose(now) && now.state != interaction().hero_state) {
+        interaction().hero_state = now.state;
+        if (now.state == 0) {
+            g_ride.start_seq = 0;
+            g_ride.start_speed = 1.0f;
+        }
+    }
     std::copy(pose.position, pose.position + 3, g_ride.shown);
     g_ride.has_shown = true;
 
