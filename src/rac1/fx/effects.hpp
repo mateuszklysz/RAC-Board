@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <map>
+#include <utility>
 #include <set>
 #include <string>
 
@@ -23,9 +24,10 @@ class Effects : public jak::Effects {
     void trick(jak::BoardTricks trick, float points) override;
     void combo_end() override;
     // The ride is over: a combo still running ends (its line fades out).
-    // The pause menu: the board's own sounds stop (its loops start again with the next frame that
-    // plays them); Ratchet's, the game's, pause with the game.
+    // The pause menu: the board's own sounds held silent, and back as they were once it closes;
+    // Ratchet's, the game's, pause with the game.
     void pause_sounds();
+    void resume_sounds();
     void ride_over() {
         if (m_in_combo) combo_end();
     }
@@ -53,6 +55,9 @@ class Effects : public jak::Effects {
     BoardFx m_fx;
     std::map<std::string, int> m_sounds;
     std::map<uint32_t, uint32_t> m_voices;
+    // Each voice's volume and pitch ratio as last set, to bring it back after the pause.
+    std::map<uint32_t, std::pair<float, float>> m_levels;
+    bool m_paused = false;
     // Ids of one-shot voices (sound_play): a sound_loop on one only sets it, never starts it again.
     std::set<uint32_t> m_once;
     std::map<uint32_t, int> m_hero_voices; // the game's own sounds on Ratchet, by the same ids

@@ -118,6 +118,8 @@ uint32_t Effects::sound_play(const char* name, float volume, float pitch) {
     if (voice == 0) return 0;
     const uint32_t id = m_next++;
     m_voices[id] = voice;
+    m_levels[id] = {volume, pitch_ratio(pitch)};
+    if (m_paused) mod().sound_set(voice, 0.0f, pitch_ratio(pitch));
     if (!loop) m_once.insert(id);
     return id;
 }
@@ -132,14 +134,20 @@ void Effects::sound_loop(const char* name, uint32_t id, float volume, float pitc
         return;
     }
     auto it = m_voices.find(id);
-    if (it != m_voices.end() && mod().sound_set(it->second, volume, pitch_ratio(pitch))) return;
+    if (it != m_voices.end()) {
+        m_levels[id] = {volume, pitch_ratio(pitch)};
+        if (mod().sound_set(it->second, m_paused ? 0.0f : volume, pitch_ratio(pitch))) return;
+    }
     // A one-shot that ended, or was stopped under the pause, stays over: started again as a loop it
     // played on for good once the board dropped its id (the spin's loop after a pause).
     if (m_once.count(id) != 0) return;
     const int s = sound(name);
     if (s < 0) return;
-    const uint32_t voice = mod().sound_play(s, volume, pitch_ratio(pitch), true);
-    if (voice != 0) m_voices[id] = voice;
+    const uint32_t voice = mod().sound_play(s, m_paused ? 0.0f : volume, pitch_ratio(pitch), true);
+    if (voice != 0) {
+        m_voices[id] = voice;
+        m_levels[id] = {volume, pitch_ratio(pitch)};
+    }
 }
 
 void Effects::sound_stop(uint32_t id) {
@@ -149,19 +157,37 @@ void Effects::sound_stop(uint32_t id) {
     }
     m_once.erase(id);
     auto it = m_voices.find(id);
+    m_levels.erase(id);
     if (it == m_voices.end()) return;
     mod().sound_stop(it->second);
     m_voices.erase(it);
 }
 
+// Under the pause menu every voice is held silent where it is, and comes back as it was after.
 void Effects::pause_sounds() {
-    for (const auto& v : m_voices) mod().sound_stop(v.second);
-    m_voices.clear();
+    if (m_paused) return;
+    m_paused = true;
+    trace("pause: " + std::to_string(m_voices.size()) + " voices held");
+    for (const auto& v : m_voices) {
+        const auto l = m_levels.find(v.first);
+        mod().sound_set(v.second, 0.0f, l != m_levels.end() ? l->second.second : 1.0f);
+    }
+}
+
+void Effects::resume_sounds() {
+    if (!m_paused) return;
+    m_paused = false;
+    for (const auto& v : m_voices) {
+        const auto l = m_levels.find(v.first);
+        if (l != m_levels.end()) mod().sound_set(v.second, l->second.first, l->second.second);
+    }
 }
 
 void Effects::stop_sounds() {
     for (const auto& v : m_voices) mod().sound_stop(v.second);
     m_voices.clear();
+    m_levels.clear();
+    m_paused = false;
     m_once.clear();
     for (const auto& v : m_hero_voices) {
         if (v.second >= 0) mod().hero_sound_stop(v.second);

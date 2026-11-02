@@ -79,6 +79,14 @@ int load(openrac::Mod& m) {
     load_settings(m);
     if (m.has_world()) m.on_moby_hit(on_moby_hit);
     m.on_pad(on_pad);
+    // The pause menu runs no hero update: the board's sounds held and brought back from here.
+    m.on_frame([] {
+        if (riding() && mod().play_status().phase == OPENRAC_PLAY_MENU) {
+            effects().pause_sounds();
+        } else {
+            effects().resume_sounds();
+        }
+    });
     m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
     m.info("RAC-Board ready");
     return 0;
