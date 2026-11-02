@@ -27,9 +27,8 @@ CHANNELS = {
     'tail_side': [(104, Z, 6), (105, Z, 8), (106, Z, 8)],
     'tail_tip': [(107, Z, 10), (108, Z, 12), (109, Z, 12), (110, Z, 12)],
     'tail_up': [(104, Y, -6), (105, Y, -6), (106, Y, -8), (107, Y, -8), (108, Y, -8)],
-    # face: jaw open, eyelids shut, brows up, snout curl
+    # face: jaw open, brows up, snout curl (no blink: joints 19 and 20 are his irises, not lids)
     'jaw': [(10, Y, 16)],
-    'blink': [(19, Y, 68), (20, Y, 68)],
     'brows': [(26, Y, -16), (30, Y, -16)],
     'snarl': [(9, Y, -10)],
     # the board's upper-body joint-mod (Jak's joint 5): his chest turned about up, a degree a unit

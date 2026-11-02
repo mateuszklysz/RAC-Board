@@ -28,7 +28,7 @@ struct Chan {
 // The secondary-motion channels, in tools/poses/export.py's order.
 enum class Channel : uint8_t {
     ear_l_up, ear_r_up, ear_l_back, ear_r_back, tail_side, tail_tip,
-    tail_up, jaw, blink, brows, snarl, upper_twist,
+    tail_up, jaw, brows, snarl, upper_twist,
     count
 };
 
@@ -78,8 +78,6 @@ class RideAnimator {
     Spring m_chan[static_cast<int>(Channel::count)];
     float m_spin = 0.0f;
     float m_time = 0.0f;
-    float m_blink_at = 2.0f;
-    uint32_t m_seed = 0x2545F491u;
     bool m_was_grounded = true;
 };
 

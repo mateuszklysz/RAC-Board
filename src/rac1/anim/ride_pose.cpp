@@ -82,7 +82,6 @@ void RideAnimator::update(const MixPose& pose, const Motion& m, float spin, floa
         ch(Channel::ear_r_up).v -= 0.8f * hit;
         ch(Channel::tail_up).v -= 0.6f * hit;
         ch(Channel::jaw).v += 0.3f * hit;
-        m_blink_at = std::min(m_blink_at, t);
     }
     if (took_off) {
         const float pop = clampf(m.vz * 0.3f, 1.0f, 4.0f);
@@ -101,19 +100,11 @@ void RideAnimator::update(const MixPose& pose, const Motion& m, float spin, floa
     ch(Channel::tail_side).step(-turn + 0.3f * wave(0.65f, 0.0f), 2.0f, 0.25f, dt);
     ch(Channel::tail_tip).step(-0.3f * ch(Channel::tail_side).v + 0.35f * wave(0.65f, -1.3f), 2.6f, 0.22f, dt);
     ch(Channel::tail_up).step(0.5f * wind + 0.15f * wave(0.4f, 0.9f), 2.2f, 0.25f, dt);
-    // Face: the clips carry it; the springs only answer the landing, and he blinks every few seconds.
+    // Face: the clips carry it; the springs only answer the landing. His model has no eyelids
+    // (joints 19 and 20 turn the irises), so he does not blink.
     ch(Channel::jaw).step(0.0f, 4.5f, 0.55f, dt);
     ch(Channel::snarl).step(0.0f, 4.0f, 0.6f, dt);
     ch(Channel::brows).step(0.0f, 3.5f, 0.5f, dt);
-    float blink = 0.0f;
-    if (t >= m_blink_at) {
-        blink = 1.0f;
-        if (t >= m_blink_at + 0.11f) {
-            m_seed = m_seed * 1664525u + 1013904223u;
-            m_blink_at = t + 2.2f + 3.5f * static_cast<float>(m_seed >> 8) / 16777216.0f;
-        }
-    }
-    ch(Channel::blink).step(blink, 9.0f, 0.9f, dt);
 }
 
 std::vector<JointOut> RideAnimator::joints() const {

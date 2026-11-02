@@ -49,10 +49,6 @@ constexpr ChannelTurn c_tail_up[] = {
 constexpr ChannelTurn c_jaw[] = {
     {10, {-0.01098f, 0.99909f, 0.04133f}, 16.0f},
 };
-constexpr ChannelTurn c_blink[] = {
-    {19, {-0.01307f, 0.99906f, 0.04133f}, 68.0f},
-    {20, {-0.00527f, 0.99910f, 0.04221f}, 68.0f},
-};
 constexpr ChannelTurn c_brows[] = {
     {26, {-0.01298f, 0.99585f, 0.09014f}, -16.0f},
     {30, {-0.01105f, 0.99987f, 0.01166f}, -16.0f},
@@ -74,7 +70,6 @@ constexpr Chan kChannels[] = {
     {c_tail_tip, sizeof(c_tail_tip) / sizeof(c_tail_tip[0])},  // tail_tip
     {c_tail_up, sizeof(c_tail_up) / sizeof(c_tail_up[0])},  // tail_up
     {c_jaw, sizeof(c_jaw) / sizeof(c_jaw[0])},  // jaw
-    {c_blink, sizeof(c_blink) / sizeof(c_blink[0])},  // blink
     {c_brows, sizeof(c_brows) / sizeof(c_brows[0])},  // brows
     {c_snarl, sizeof(c_snarl) / sizeof(c_snarl[0])},  // snarl
     {c_upper_twist, sizeof(c_upper_twist) / sizeof(c_upper_twist[0])},  // upper_twist
