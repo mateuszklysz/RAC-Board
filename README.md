@@ -31,14 +31,14 @@
 
 ## What is it?
 
-A mod that gives Ratchet Jak II's JET-Board. **D-pad Up** to hop on.
+A mod that gives Ratchet Jak II's JET-Board.
 
-- Jak II's real board code, quirks and glitches included
-- Grind every rail, plus any edge Jak could grind
-- Spins, flips, grabs and combos with Jak II's points
-- Ratchet's own clips and sounds, Clank on his back
-- Hits still count, the game's camera, your own buttons
-- PAL and NTSC-U, on PC and Android, nothing from the discs
+- **Jak II's real board logic.** The states, physics, tricks and collision are Jak II's code, ported line by line.
+- **Its quirks too.** Hovers, extended flips and the other speedrun glitches work as in Jak II.
+- **Grind any rail.** Every grind rail in the game can be ridden, plus any edge Jak could grind.
+- **Tricks and combos.** Spins, flips, grabs, boosts, with Jak II's names and points on screen.
+- **Ratchet's own style.** He rides in clips made for him, with Clank on his back.
+- **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools.
 
 <p align="center">
   <img src="docs/readme/ride.gif" alt="Ratchet does a flip and a spin on the board on Pokitaru" width="100%">
