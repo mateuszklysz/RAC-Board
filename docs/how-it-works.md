@@ -70,6 +70,8 @@ The board hands Ratchet back to the game when the game should decide (`src/rac1/
 Ratchet rides with the wrench: with a weapon or gadget in his hand, getting on first sets the game's
 own request to put it away (the one its vehicles use, `src/rac1/world/hand.cpp`) and the board
 starts once the wrench is in his hand. Circle and Triangle are kept from the game while he rides,
-so nothing is fired and the quick select stays shut.
+so nothing is fired and the quick select stays shut. The game's item code still runs during the
+ride (`hero_set_pose` runs it), so a weapon or gadget picked in the pause menu, or given by a
+pickup, waits until he gets off.
 
 On a moving platform the board moves and turns with the platform's moby.

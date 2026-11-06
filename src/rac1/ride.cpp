@@ -655,6 +655,7 @@ void show_ride(bool last) {
     jak::vector_z_quaternion(fwd, t.control.quat);
     const float yaw = jak_forward_to_yaw(fwd);
     effects().yaw = yaw;
+    hold_hand(pose.item);
     show_ratchet(pose, yaw, last);
     show_board(pose, yaw);
     if (last) {
@@ -683,6 +684,7 @@ void end_ride() {
     g_pose_out = g_last_offsets.empty() ? 0.0f : kPoseOut;
     if (g_pose_out <= 0.0f) mod().hero_set_joints({});
     release_hand();
+    release_hold();
     g_ride.look.reset();
     g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
     g_ride.spin_carry = g_ride.spin_carry_v = g_ride.drawn_turn = g_ride.drawn_rate = 0.0f;

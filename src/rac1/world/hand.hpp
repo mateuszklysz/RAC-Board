@@ -15,6 +15,13 @@ bool hand_free(int32_t item);
 // Asks the game to put the item in his hand away and take the wrench, as it does itself for its
 // own vehicles; `false` takes back a request of the mod's the game has not carried out yet.
 void ask_for_wrench(bool ask);
+// Each frame he rides, before the game's item code (hero_set_pose runs it): the wrench stays in his
+// hand. An item asked for meanwhile (the pause menu, a pickup) waits until he gets off, and anything
+// else that came into his hand is put away. `item` is the one in his hand now.
+void hold_hand(int32_t item);
+// The ride is over: the item asked for while he rode is asked for again, and a wrench request of the
+// mod's still open is taken back.
+void release_hold();
 
 // Finds the hand's pieces near `hero` (game units), by class: as the ride starts, and with `add`
 // for an item he takes out while riding (added to those found).
