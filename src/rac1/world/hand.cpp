@@ -17,10 +17,6 @@ constexpr int32_t kWrench = 8; // the wrench's item id (ITEM_WRENCH)
 bool g_asked = false;          // the wrench request below is the mod's
 int32_t g_held_request = 0;    // an item asked for while he rode, given back when he gets off
 
-// A field of the hero's record, g_hero (PAL D_0013F450, NTSC-U D_0013F350).
-openrac::gaddr hero_field(uint32_t offset) {
-    return mod().relocate(ctx().pal ? 0x0013F450u : 0x0013F350u) + offset;
-}
 // force_slot0_item8: the game's own request to put the item in his hand away for the wrench. It
 // clears it once done.
 openrac::gaddr wrench_request() { return hero_field(0x20A6u); }
@@ -28,12 +24,14 @@ openrac::gaddr wrench_request() { return hero_field(0x20A6u); }
 // pause menu and by pickups, carried out by the game's item code.
 openrac::gaddr hand_request() { return hero_field(0x20B8u); }
 
-} // namespace
-
+// The item in his hand is the wrench.
 bool is_wrench(int32_t item) { return item == kWrench; }
 
+// Nothing in his hand to put away: the wrench, or no item.
 bool hand_free(int32_t item) { return item < 0 || is_wrench(item); }
 
+// Asks the game to put the item in his hand away and take the wrench, as it does itself for its own
+// vehicles; `false` takes back a request of the mod's the game has not carried out yet.
 void ask_for_wrench(bool ask) {
     const openrac::Memory mem = mod().memory();
     const openrac::gaddr at = wrench_request();
@@ -50,6 +48,8 @@ void ask_for_wrench(bool ask) {
         g_asked = false;
     }
 }
+
+} // namespace
 
 void hold_hand(int32_t item) {
     const openrac::Memory mem = mod().memory();

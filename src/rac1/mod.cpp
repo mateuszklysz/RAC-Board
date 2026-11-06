@@ -46,7 +46,7 @@ void hero_update(const openrac::Original<void()>& original) {
     effects().update();
     camera_blend_tick();
     if (!riding()) {
-        if (!board_request_tick(toggle)) {
+        if (!(toggle && try_start_ride())) {
             note_on_foot();
             original();
             pose_out_tick();

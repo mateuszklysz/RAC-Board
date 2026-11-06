@@ -10,12 +10,10 @@ namespace rac1 {
 constexpr int kHeroScriptedStand = 0x72;
 
 bool riding();
-// Off the board, each frame: gets on when `pressed` (the board's button went down) and want-to-board?
-// says yes (Ratchet free and with room); false otherwise, and the game's update runs as usual. He
-// rides with the wrench put away, never a weapon or gadget: with one in his hand the game puts it
-// away first (as for its own vehicles). In a wrench swing the swing ends first. He gets on once he
-// is ready, within a second, or not at all.
-bool board_request_tick(bool pressed);
+// Gets on when want-to-board? says yes (the board's button pressed, Ratchet free and with room);
+// false otherwise, and the game's update runs as usual. He gets on at once: a wrench swing under way
+// ends, and a weapon or gadget in his hand is put away for the wrench as he rides.
+bool try_start_ride();
 enum class RideStep {
     riding, // still on the board
     left,   // the board's code got off (or the board met one of the game's hazards)

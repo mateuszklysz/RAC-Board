@@ -69,4 +69,8 @@ void trace(const std::string& line) {
     if (settings().trace) mod().info(line);
 }
 
+openrac::gaddr hero_field(uint32_t offset) {
+    return mod().relocate(ctx().pal ? 0x0013F450u : 0x0013F350u) + offset;
+}
+
 } // namespace rac1

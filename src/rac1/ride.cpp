@@ -464,14 +464,22 @@ void note_on_foot() {
 
 namespace {
 
-// A press of the board's button that waits for Ratchet to be ready: frames left (0: no wait), and
-// whether the wait asked the game for the wrench.
-int g_wait = 0;
-bool g_wrench_asked = false;
+// An attack under way (control mode 6, such as a wrench swing or the crouch swing) ends as he gets
+// on, as OpenRAC's hero_set_pose ends a slam: idle, step 0, control mode 0. Left as it is, the game
+// plays it on after the ride as a new swing. True when one ended.
+bool end_attack() {
+    const openrac::Memory mem = mod().memory();
+    if (mem.read<int32_t>(hero_field(0x208Cu)) != 6) return false;
+    trace("attack in hero state " + std::to_string(mem.read<int32_t>(hero_field(0x2084u))) + " ended");
+    mem.write<int32_t>(hero_field(0x2084u), 0);
+    mem.write<int32_t>(hero_field(0x2088u), 0);
+    mem.write<int32_t>(hero_field(0x208Cu), 0);
+    return true;
+}
 
-// Gets on when want-to-board? says yes (the button pressed, Ratchet free and with room); false
-// otherwise, and the game's update runs as usual. `check_only`: only asks, and never gets on.
-bool try_start_ride(bool check_only = false) {
+} // namespace
+
+bool try_start_ride() {
     openrac_pose pose{};
     if (!playing() || !mod().hero_pose(pose)) return false;
     auto t = std::make_unique<jak::Target>();
@@ -488,8 +496,8 @@ bool try_start_ride(bool check_only = false) {
     Interaction& io = interaction();
     io.target = t.get();
     io.hero_state = pose.state;
-    const uint32_t start_seq = pose.seq;
-    const float start_speed = pose.anim_speed > 0.0f ? pose.anim_speed : 1.0f;
+    uint32_t start_seq = pose.seq;
+    float start_speed = pose.anim_speed > 0.0f ? pose.anim_speed : 1.0f;
     io.left = false;
     jak::attach(*t, *rt, io);
 
@@ -501,10 +509,15 @@ bool try_start_ride(bool check_only = false) {
     feed_pad(*t, true);
     const bool ok = jak::want_to_board_p(*t);
     rt->board_setup = false; // target-board-setup's own first time, as each ride makes a new target
-    if (!ok || check_only) {
-        if (!ok) trace("no board in hero state " + std::to_string(pose.state));
+    if (!ok) {
+        trace("no board in hero state " + std::to_string(pose.state));
         io.target = nullptr;
-        return ok;
+        return false;
+    }
+    if (end_attack()) {
+        io.hero_state = 0;
+        start_seq = 0;
+        start_speed = 1.0f;
     }
     t->focus_status &= ~(jak::focus::hit | jak::focus::edge_grab | jak::focus::grabbed | jak::focus::dead);
 
@@ -547,55 +560,6 @@ bool try_start_ride(bool check_only = false) {
     jak::go(*g_ride.t, jak::StateId::target_board_start);
     if (settings().board_camera) camera_start(*g_ride.t);
     return true;
-}
-
-// A swing of the wrench under way (its combo, the crouch swing): the game would play the swing's
-// state on after the ride, as a new swing, so the board waits for it to end.
-bool swinging(int32_t state) { return state == 0x13 || state == 0x15; }
-
-// Ready to get on: no swing under way, and the wrench or nothing in his hand. Once the game was
-// asked for the wrench, the wrench itself, not the empty hand between the two items as it swaps them.
-bool ready(const openrac_pose& pose) {
-    if (swinging(pose.state)) return false;
-    return g_wrench_asked ? is_wrench(pose.item) : hand_free(pose.item);
-}
-
-// The wait is over: a wrench request the game has not carried out is taken back.
-void stop_wait() {
-    if (g_wrench_asked) ask_for_wrench(false);
-    g_wait = 0;
-    g_wrench_asked = false;
-}
-
-} // namespace
-
-bool board_request_tick(bool pressed) {
-    if (!pressed && g_wait == 0) return false;
-    openrac_pose pose{};
-    if (!playing() || !mod().hero_pose(pose)) {
-        stop_wait();
-        return false;
-    }
-    if (g_wait > 0) {
-        if (ready(pose)) {
-            stop_wait();
-            return try_start_ride();
-        }
-        if (--g_wait == 0) {
-            trace("not ready in a second (state " + std::to_string(pose.state) + ", item " +
-                  std::to_string(pose.item) + "): no board");
-            stop_wait();
-        }
-        return false;
-    }
-    if (ready(pose)) return try_start_ride();
-    // A swing to end or an item to put away first, if the board could start now.
-    if (!try_start_ride(true)) return false;
-    g_wrench_asked = !hand_free(pose.item);
-    if (g_wrench_asked) ask_for_wrench(true);
-    trace("waiting to get on (state " + std::to_string(pose.state) + ", item " + std::to_string(pose.item) + ")");
-    g_wait = ctx().pal ? 50 : 60; // a second
-    return false;
 }
 
 // Whether the game took Ratchet over while he rode: a scene, a vendor, a death or a move from its

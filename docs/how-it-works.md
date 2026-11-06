@@ -67,12 +67,13 @@ The board hands Ratchet back to the game when the game should decide (`src/rac1/
 - A fall below the level's fall height.
 - The game moving Ratchet or changing his state (cutscenes, teleports).
 
-Ratchet rides with the wrench: with a weapon or gadget in his hand, getting on first sets the game's
-own request to put it away (the one its vehicles use, `src/rac1/world/hand.cpp`) and the board
-starts once the wrench is in his hand. Circle and Triangle are kept from the game while he rides,
-so nothing is fired and the quick select stays shut. The game's item code still runs during the
-ride (`hero_set_pose` runs it), so a weapon or gadget picked in the pause menu, or given by a
-pickup, waits until he gets off. Getting on in the middle of a wrench swing waits for the swing to
-end, since the game would play the swing's state on as a new swing after the ride.
+Ratchet rides with the wrench, and gets on at once. A weapon or gadget in his hand is put away by
+the game's own request (the one its vehicles use, `src/rac1/world/hand.cpp`), set each frame he
+rides: the game's item code still runs during the ride (`hero_set_pose` runs it), so it swaps the
+item for the wrench with the hand's pieces hidden. A weapon or gadget picked in the pause menu, or
+given by a pickup, waits until he gets off. Circle and Triangle are kept from the game while he
+rides, so nothing is fired and the quick select stays shut. An attack under way as he gets on (a
+wrench swing, control mode 6) is ended there, as `hero_set_pose` ends a slam, since the game would
+play it on as a new swing after the ride.
 
 On a moving platform the board moves and turns with the platform's moby.
