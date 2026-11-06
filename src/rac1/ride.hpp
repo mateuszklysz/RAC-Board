@@ -10,8 +10,9 @@ namespace rac1 {
 constexpr int kHeroScriptedStand = 0x72;
 
 bool riding();
-// Gets on when want-to-board? says yes (the button pressed, Ratchet free and with room); false
-// otherwise, and the game's update runs as usual.
+// Gets on when want-to-board? says yes (the board's button pressed, Ratchet free and with room);
+// false otherwise, and the game's update runs as usual. He gets on at once: a wrench swing under way
+// ends, and a weapon or gadget in his hand is put away for the wrench as he rides.
 bool try_start_ride();
 enum class RideStep {
     riding, // still on the board

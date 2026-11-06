@@ -462,6 +462,23 @@ void note_on_foot() {
     if (mod().hero_pose(pose) && hero_on_ground(pose.state)) g_ground_time = ctx().clock;
 }
 
+namespace {
+
+// An attack under way (control mode 6, such as a wrench swing or the crouch swing) ends as he gets
+// on, as OpenRAC's hero_set_pose ends a slam: idle, step 0, control mode 0. Left as it is, the game
+// plays it on after the ride as a new swing. True when one ended.
+bool end_attack() {
+    const openrac::Memory mem = mod().memory();
+    if (mem.read<int32_t>(hero_field(0x208Cu)) != 6) return false;
+    trace("attack in hero state " + std::to_string(mem.read<int32_t>(hero_field(0x2084u))) + " ended");
+    mem.write<int32_t>(hero_field(0x2084u), 0);
+    mem.write<int32_t>(hero_field(0x2088u), 0);
+    mem.write<int32_t>(hero_field(0x208Cu), 0);
+    return true;
+}
+
+} // namespace
+
 bool try_start_ride() {
     openrac_pose pose{};
     if (!playing() || !mod().hero_pose(pose)) return false;
@@ -479,8 +496,8 @@ bool try_start_ride() {
     Interaction& io = interaction();
     io.target = t.get();
     io.hero_state = pose.state;
-    const uint32_t start_seq = pose.seq;
-    const float start_speed = pose.anim_speed > 0.0f ? pose.anim_speed : 1.0f;
+    uint32_t start_seq = pose.seq;
+    float start_speed = pose.anim_speed > 0.0f ? pose.anim_speed : 1.0f;
     io.left = false;
     jak::attach(*t, *rt, io);
 
@@ -496,6 +513,11 @@ bool try_start_ride() {
         trace("no board in hero state " + std::to_string(pose.state));
         io.target = nullptr;
         return false;
+    }
+    if (end_attack()) {
+        io.hero_state = 0;
+        start_seq = 0;
+        start_speed = 1.0f;
     }
     t->focus_status &= ~(jak::focus::hit | jak::focus::edge_grab | jak::focus::grabbed | jak::focus::dead);
 
@@ -606,7 +628,7 @@ RideStep tick_ride(bool toggle) {
 void show_ride(bool last) {
     const jak::Target& t = *g_ride.t;
     openrac_pose pose{};
-    mod().hero_pose(pose);
+    if (mod().hero_pose(pose)) hold_hand(pose.item);
     jak::Vec fwd;
     jak::vector_z_quaternion(fwd, t.control.quat);
     const float yaw = jak_forward_to_yaw(fwd);
@@ -618,7 +640,7 @@ void show_ride(bool last) {
     } else {
         show_guide(pose);
     }
-    // An item taken out while he rides (a quick select) is put away too: its pieces found again.
+    // An item the game still gives his hand while he rides is put away too: its pieces found again.
     // Its moby can come a few frames after the switch, so it is looked for over a quarter second.
     if (pose.item != g_ride.held_item) {
         g_ride.held_item = pose.item;
@@ -639,6 +661,7 @@ void end_ride() {
     g_pose_out = g_last_offsets.empty() ? 0.0f : kPoseOut;
     if (g_pose_out <= 0.0f) mod().hero_set_joints({});
     release_hand();
+    release_hold();
     g_ride.look.reset();
     g_ride.spin_hold = g_ride.spin_lead = g_ride.last_spin = 0.0f;
     g_ride.spin_carry = g_ride.spin_carry_v = g_ride.drawn_turn = g_ride.drawn_rate = 0.0f;

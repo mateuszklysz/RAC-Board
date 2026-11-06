@@ -61,5 +61,7 @@ void load_settings(openrac::Mod& mod);
 bool playing();
 // A line in the trace log, when the trace setting is on.
 void trace(const std::string& line);
+// A field of the hero's record, g_hero (PAL D_0013F450, NTSC-U D_0013F350).
+openrac::gaddr hero_field(uint32_t offset);
 
 } // namespace rac1
