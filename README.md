@@ -64,7 +64,6 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 | Duck, duck jump, grabs in the air | L1 | L1 |
 
 - Circle, Square and Triangle keep the game's jobs.
-- In the Trespasser puzzle the D-pad is the game's (it picks the ring), so the board stays off there.
 - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.
 - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
 - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.
