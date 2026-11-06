@@ -557,6 +557,7 @@ void stop_wrench_wait() {
 } // namespace
 
 bool board_request_tick(bool pressed) {
+    if (!pressed && g_wrench_wait == 0) return false;
     openrac_pose pose{};
     if (!playing() || !mod().hero_pose(pose)) {
         stop_wrench_wait();
@@ -574,7 +575,6 @@ bool board_request_tick(bool pressed) {
         }
         return false;
     }
-    if (!pressed) return false;
     if (hand_free(pose.item)) return try_start_ride();
     // A weapon or gadget in his hand: put away first, if the board could start now.
     if (!try_start_ride(true)) return false;
@@ -650,12 +650,11 @@ RideStep tick_ride(bool toggle) {
 void show_ride(bool last) {
     const jak::Target& t = *g_ride.t;
     openrac_pose pose{};
-    mod().hero_pose(pose);
+    if (mod().hero_pose(pose)) hold_hand(pose.item);
     jak::Vec fwd;
     jak::vector_z_quaternion(fwd, t.control.quat);
     const float yaw = jak_forward_to_yaw(fwd);
     effects().yaw = yaw;
-    hold_hand(pose.item);
     show_ratchet(pose, yaw, last);
     show_board(pose, yaw);
     if (last) {

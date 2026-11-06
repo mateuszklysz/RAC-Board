@@ -80,10 +80,13 @@ void on_pad(int port, uint8_t* report, int size) {
     g_pad.valid = true;
     // The board's button is the mod's: in play the game does not see it (D-pad Up or Down at any time,
     // R2 or L2 and R2 only while riding, so strafing still works on foot). Menus keep it, and so does
-    // the Trespasser puzzle (it picks a ring with D-pad Up and Down).
-    const bool dpad = settings().toggle == Toggle::up || settings().toggle == Toggle::down;
-    const bool take = dpad ? playing() && (riding() || !in_scripted_stand()) : riding();
-    if (take && (settings().toggle != Toggle::l2r2 || toggle_held(g_pad.held))) release(report, toggle_bits());
+    // the Trespasser puzzle (it picks a ring with D-pad Up and Down). Only a held button needs
+    // hiding, so the hero's state is read only then.
+    if (toggle_held(g_pad.held)) {
+        const bool dpad = settings().toggle == Toggle::up || settings().toggle == Toggle::down;
+        const bool take = dpad ? playing() && (riding() || !in_scripted_stand()) : riding();
+        if (take) release(report, toggle_bits());
+    }
     // While riding, L1, L2, R1 and R2 are the board's (tricks, grind, grabs), and Circle and Triangle
     // are nobody's: he rides with the wrench put away, so no weapon or gadget comes out and the quick
     // select stays shut. The game, and other mods (lock-strafe turns the camera ahead on L2 or R2),

@@ -37,12 +37,16 @@ bool hand_free(int32_t item) { return item < 0 || is_wrench(item); }
 void ask_for_wrench(bool ask) {
     const openrac::Memory mem = mod().memory();
     const openrac::gaddr at = wrench_request();
-    if (ask) {
-        // A request the game made itself stays the game's.
-        g_asked = g_asked || mem.read<uint8_t>(at) == 0;
-        mem.write<uint8_t>(at, 1);
-    } else {
-        if (g_asked && mem.read<uint8_t>(at) != 0) mem.write<uint8_t>(at, 0);
+    // Cleared: the game carried the request out, and nothing of the mod's is open. Set and not the
+    // mod's: the game's own, which it keeps.
+    if (mem.read<uint8_t>(at) == 0) {
+        g_asked = false;
+        if (ask) {
+            mem.write<uint8_t>(at, 1);
+            g_asked = true;
+        }
+    } else if (!ask && g_asked) {
+        mem.write<uint8_t>(at, 0);
         g_asked = false;
     }
 }
