@@ -10,7 +10,33 @@
 namespace rac1 {
 
 namespace {
+
 std::vector<int> g_hand; // the pieces' moby slots
+
+constexpr int32_t kWrench = 8; // the wrench's item id (ITEM_WRENCH)
+bool g_asked = false;          // the wrench request below is the mod's
+
+// The hero's force_slot0_item8 (g_hero + 0x20A6; g_hero is PAL D_0013F450, NTSC-U D_0013F350): the
+// game's own request to put the item in his hand away for the wrench. It clears it once done.
+openrac::gaddr wrench_request() { return mod().relocate(ctx().pal ? 0x0013F450u : 0x0013F350u) + 0x20A6u; }
+
+} // namespace
+
+bool is_wrench(int32_t item) { return item == kWrench; }
+
+bool hand_free(int32_t item) { return item < 0 || is_wrench(item); }
+
+void ask_for_wrench(bool ask) {
+    const openrac::Memory mem = mod().memory();
+    const openrac::gaddr at = wrench_request();
+    if (ask) {
+        // A request the game made itself stays the game's.
+        g_asked = g_asked || mem.read<uint8_t>(at) == 0;
+        mem.write<uint8_t>(at, 1);
+    } else {
+        if (g_asked && mem.read<uint8_t>(at) != 0) mem.write<uint8_t>(at, 0);
+        g_asked = false;
+    }
 }
 
 void find_hand(const float hero[3], bool add) {

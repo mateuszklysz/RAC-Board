@@ -462,7 +462,14 @@ void note_on_foot() {
     if (mod().hero_pose(pose) && hero_on_ground(pose.state)) g_ground_time = ctx().clock;
 }
 
-bool try_start_ride() {
+namespace {
+
+// Frames left for the game to put the item in his hand away before he gets on (0: not waiting).
+int g_wrench_wait = 0;
+
+// Gets on when want-to-board? says yes (the button pressed, Ratchet free and with room); false
+// otherwise, and the game's update runs as usual. `check_only`: only asks, and never gets on.
+bool try_start_ride(bool check_only = false) {
     openrac_pose pose{};
     if (!playing() || !mod().hero_pose(pose)) return false;
     auto t = std::make_unique<jak::Target>();
@@ -492,10 +499,10 @@ bool try_start_ride() {
     feed_pad(*t, true);
     const bool ok = jak::want_to_board_p(*t);
     rt->board_setup = false; // target-board-setup's own first time, as each ride makes a new target
-    if (!ok) {
-        trace("no board in hero state " + std::to_string(pose.state));
+    if (!ok || check_only) {
+        if (!ok) trace("no board in hero state " + std::to_string(pose.state));
         io.target = nullptr;
-        return false;
+        return ok;
     }
     t->focus_status &= ~(jak::focus::hit | jak::focus::edge_grab | jak::focus::grabbed | jak::focus::dead);
 
@@ -538,6 +545,43 @@ bool try_start_ride() {
     jak::go(*g_ride.t, jak::StateId::target_board_start);
     if (settings().board_camera) camera_start(*g_ride.t);
     return true;
+}
+
+// The wait for the wrench is over: a request the game has not carried out is taken back.
+void stop_wrench_wait() {
+    if (g_wrench_wait == 0) return;
+    g_wrench_wait = 0;
+    ask_for_wrench(false);
+}
+
+} // namespace
+
+bool board_request_tick(bool pressed) {
+    openrac_pose pose{};
+    if (!playing() || !mod().hero_pose(pose)) {
+        stop_wrench_wait();
+        return false;
+    }
+    if (g_wrench_wait > 0) {
+        // The wrench itself, not the empty hand between the two items, as the game swaps them.
+        if (is_wrench(pose.item)) {
+            stop_wrench_wait();
+            return try_start_ride();
+        }
+        if (--g_wrench_wait == 0) {
+            trace("item " + std::to_string(pose.item) + " not put away: no board");
+            ask_for_wrench(false);
+        }
+        return false;
+    }
+    if (!pressed) return false;
+    if (hand_free(pose.item)) return try_start_ride();
+    // A weapon or gadget in his hand: put away first, if the board could start now.
+    if (!try_start_ride(true)) return false;
+    trace("item " + std::to_string(pose.item) + " in hand: the wrench first");
+    ask_for_wrench(true);
+    g_wrench_wait = ctx().pal ? 50 : 60; // a second
+    return false;
 }
 
 // Whether the game took Ratchet over while he rode: a scene, a vendor, a death or a move from its
@@ -618,7 +662,7 @@ void show_ride(bool last) {
     } else {
         show_guide(pose);
     }
-    // An item taken out while he rides (a quick select) is put away too: its pieces found again.
+    // An item the game still gives his hand while he rides is put away too: its pieces found again.
     // Its moby can come a few frames after the switch, so it is looked for over a quarter second.
     if (pose.item != g_ride.held_item) {
         g_ride.held_item = pose.item;

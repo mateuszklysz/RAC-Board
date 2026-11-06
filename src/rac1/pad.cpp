@@ -64,6 +64,12 @@ bool in_scripted_stand() {
     return mod().hero_pose(pose) && pose.state == kHeroScriptedStand;
 }
 
+// The game sees `bits` released in a pad report (its buttons are active low).
+void release(uint8_t* report, uint16_t bits) {
+    report[0] |= static_cast<uint8_t>(bits & 0xFF);
+    report[1] |= static_cast<uint8_t>(bits >> 8);
+}
+
 } // namespace
 
 void on_pad(int port, uint8_t* report, int size) {
@@ -77,18 +83,15 @@ void on_pad(int port, uint8_t* report, int size) {
     // the Trespasser puzzle (it picks a ring with D-pad Up and Down).
     const bool dpad = settings().toggle == Toggle::up || settings().toggle == Toggle::down;
     const bool take = dpad ? playing() && (riding() || !in_scripted_stand()) : riding();
-    if (take && (settings().toggle != Toggle::l2r2 || toggle_held(g_pad.held))) {
-        const uint16_t bits = toggle_bits();
-        report[0] |= static_cast<uint8_t>(bits & 0xFF);
-        report[1] |= static_cast<uint8_t>(bits >> 8);
-    }
-    // L1, L2, R1 and R2 are the board's while riding (tricks, grind, grabs): the game, and other
-    // mods (lock-strafe turns the camera ahead on L2 or R2), see them released until he gets off.
-    // The board read them above. The pause menu keeps them.
+    if (take && (settings().toggle != Toggle::l2r2 || toggle_held(g_pad.held))) release(report, toggle_bits());
+    // While riding, L1, L2, R1 and R2 are the board's (tricks, grind, grabs), and Circle and Triangle
+    // are nobody's: he rides with the wrench put away, so no weapon or gadget comes out and the quick
+    // select stays shut. The game, and other mods (lock-strafe turns the camera ahead on L2 or R2),
+    // see them released until he gets off. The board read them above. The pause menu keeps them.
     if (riding() && mod().play_status().phase != OPENRAC_PLAY_MENU) {
-        constexpr uint16_t shoulders = jak::pad::l1 | jak::pad::l2 | jak::pad::r1 | jak::pad::r2;
-        report[0] |= static_cast<uint8_t>(shoulders & 0xFF);
-        report[1] |= static_cast<uint8_t>(shoulders >> 8);
+        constexpr uint16_t kept = jak::pad::l1 | jak::pad::l2 | jak::pad::r1 | jak::pad::r2 |
+                                  jak::pad::circle | jak::pad::triangle;
+        release(report, kept);
     }
 }
 

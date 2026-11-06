@@ -63,7 +63,7 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 | Grind a rail | Hold R1 or R2 with Cross | Circle or Square |
 | Duck, duck jump, grabs in the air | L1 | L1 |
 
-- Circle, Square and Triangle keep the game's jobs.
+- No weapons or gadgets on the board: Ratchet puts his away and takes the wrench before he gets on, and Circle and Triangle do nothing while he rides. Square keeps the game's job.
 - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.
 - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
 - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.

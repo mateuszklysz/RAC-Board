@@ -67,4 +67,9 @@ The board hands Ratchet back to the game when the game should decide (`src/rac1/
 - A fall below the level's fall height.
 - The game moving Ratchet or changing his state (cutscenes, teleports).
 
+Ratchet rides with the wrench: with a weapon or gadget in his hand, getting on first sets the game's
+own request to put it away (the one its vehicles use, `src/rac1/world/hand.cpp`) and the board
+starts once the wrench is in his hand. Circle and Triangle are kept from the game while he rides,
+so nothing is fired and the quick select stays shut.
+
 On a moving platform the board moves and turns with the platform's moby.
