@@ -13,8 +13,8 @@ bool riding();
 // Off the board, each frame: gets on when `pressed` (the board's button went down) and want-to-board?
 // says yes (Ratchet free and with room); false otherwise, and the game's update runs as usual. He
 // rides with the wrench put away, never a weapon or gadget: with one in his hand the game puts it
-// away first (as for its own vehicles), and he gets on once the wrench is in his hand, within a
-// second, or not at all.
+// away first (as for its own vehicles). In a wrench swing the swing ends first. He gets on once he
+// is ready, within a second, or not at all.
 bool board_request_tick(bool pressed);
 enum class RideStep {
     riding, // still on the board

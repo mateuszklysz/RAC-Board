@@ -72,6 +72,7 @@ own request to put it away (the one its vehicles use, `src/rac1/world/hand.cpp`)
 starts once the wrench is in his hand. Circle and Triangle are kept from the game while he rides,
 so nothing is fired and the quick select stays shut. The game's item code still runs during the
 ride (`hero_set_pose` runs it), so a weapon or gadget picked in the pause menu, or given by a
-pickup, waits until he gets off.
+pickup, waits until he gets off. Getting on in the middle of a wrench swing waits for the swing to
+end, since the game would play the swing's state on as a new swing after the ride.
 
 On a moving platform the board moves and turns with the platform's moby.

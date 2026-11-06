@@ -464,8 +464,10 @@ void note_on_foot() {
 
 namespace {
 
-// Frames left for the game to put the item in his hand away before he gets on (0: not waiting).
-int g_wrench_wait = 0;
+// A press of the board's button that waits for Ratchet to be ready: frames left (0: no wait), and
+// whether the wait asked the game for the wrench.
+int g_wait = 0;
+bool g_wrench_asked = false;
 
 // Gets on when want-to-board? says yes (the button pressed, Ratchet free and with room); false
 // otherwise, and the game's update runs as usual. `check_only`: only asks, and never gets on.
@@ -547,40 +549,52 @@ bool try_start_ride(bool check_only = false) {
     return true;
 }
 
-// The wait for the wrench is over: a request the game has not carried out is taken back.
-void stop_wrench_wait() {
-    if (g_wrench_wait == 0) return;
-    g_wrench_wait = 0;
-    ask_for_wrench(false);
+// A swing of the wrench under way (its combo, the crouch swing): the game would play the swing's
+// state on after the ride, as a new swing, so the board waits for it to end.
+bool swinging(int32_t state) { return state == 0x13 || state == 0x15; }
+
+// Ready to get on: no swing under way, and the wrench or nothing in his hand. Once the game was
+// asked for the wrench, the wrench itself, not the empty hand between the two items as it swaps them.
+bool ready(const openrac_pose& pose) {
+    if (swinging(pose.state)) return false;
+    return g_wrench_asked ? is_wrench(pose.item) : hand_free(pose.item);
+}
+
+// The wait is over: a wrench request the game has not carried out is taken back.
+void stop_wait() {
+    if (g_wrench_asked) ask_for_wrench(false);
+    g_wait = 0;
+    g_wrench_asked = false;
 }
 
 } // namespace
 
 bool board_request_tick(bool pressed) {
-    if (!pressed && g_wrench_wait == 0) return false;
+    if (!pressed && g_wait == 0) return false;
     openrac_pose pose{};
     if (!playing() || !mod().hero_pose(pose)) {
-        stop_wrench_wait();
+        stop_wait();
         return false;
     }
-    if (g_wrench_wait > 0) {
-        // The wrench itself, not the empty hand between the two items, as the game swaps them.
-        if (is_wrench(pose.item)) {
-            stop_wrench_wait();
+    if (g_wait > 0) {
+        if (ready(pose)) {
+            stop_wait();
             return try_start_ride();
         }
-        if (--g_wrench_wait == 0) {
-            trace("item " + std::to_string(pose.item) + " not put away: no board");
-            ask_for_wrench(false);
+        if (--g_wait == 0) {
+            trace("not ready in a second (state " + std::to_string(pose.state) + ", item " +
+                  std::to_string(pose.item) + "): no board");
+            stop_wait();
         }
         return false;
     }
-    if (hand_free(pose.item)) return try_start_ride();
-    // A weapon or gadget in his hand: put away first, if the board could start now.
+    if (ready(pose)) return try_start_ride();
+    // A swing to end or an item to put away first, if the board could start now.
     if (!try_start_ride(true)) return false;
-    trace("item " + std::to_string(pose.item) + " in hand: the wrench first");
-    ask_for_wrench(true);
-    g_wrench_wait = ctx().pal ? 50 : 60; // a second
+    g_wrench_asked = !hand_free(pose.item);
+    if (g_wrench_asked) ask_for_wrench(true);
+    trace("waiting to get on (state " + std::to_string(pose.state) + ", item " + std::to_string(pose.item) + ")");
+    g_wait = ctx().pal ? 50 : 60; // a second
     return false;
 }
 
