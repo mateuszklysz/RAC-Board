@@ -5,6 +5,10 @@
 
 namespace rac1 {
 
+// Ratchet's scripted stand (hero state 0x72): the Trespasser puzzle's view, where the game turns
+// the rings with the D-pad, and Orxon's path camera. No board from it, and the D-pad stays the game's.
+constexpr int kHeroScriptedStand = 0x72;
+
 bool riding();
 // Gets on when want-to-board? says yes (the button pressed, Ratchet free and with room); false
 // otherwise, and the game's update runs as usual.

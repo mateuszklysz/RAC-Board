@@ -123,6 +123,7 @@ bool hero_in_air(int s) {
 }
 // The focus bits that keep Jak off the board (want-to-board?) for a state he cannot get on from.
 uint64_t hero_focus(int s) {
+    if (s == kHeroScriptedStand) return jak::focus::grabbed; // on the ground, but the game's to steer
     if (hero_on_ground(s) || hero_in_air(s) || s == 0x12 || (s >= 0x33 && s <= 0x37)) return 0; // water: water_flags
     switch (s) {
     case 0x16: case 0x3C: case 0x46: case 0x56: case 0x5D: case 0x75: case 0x76:
